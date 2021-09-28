@@ -1,5 +1,5 @@
 # Cardano Cloud-init
-Generate Cloud-init files for creating Cardano stake pool node servers
+Generate Cloud-init YAML files that can be used for installing and setting up Cardano stake pool node servers.
 
 Visit here to generate via web - https://app.cardanocloudinit.com/
 
