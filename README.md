@@ -31,12 +31,12 @@ Generate Cloud-init files
 
 Outputs to /out/${id}/*.yaml
 
-*--id* - Some unique id. You can use uuidgen if available. Or just pass some string.
-*--ver* - Cardano-node version. Defaults to latest (1.29.0).
-*--network* - Whether using testnet or mainnet. Required.
-*--ssh* - SSH key. Required so you can connect to the server.
-*--ssh-p* - SSH port. Defaults to 22.
-*-b* - Whether or not to bundle the config/setup scripts with the basic install user data for the output.
+*--id* - Some unique id. You can use uuidgen if available. Or just pass some string.  
+*--ver* - Cardano-node version. Defaults to latest (1.29.0).  
+*--network* - Whether using testnet or mainnet. Required.  
+*--ssh* - SSH key. Required so you can connect to the server.  
+*--ssh-p* - SSH port. Defaults to 22.  
+*-b* - Whether or not to bundle the config/setup scripts with the basic install user data for the output.  
 
 
 ----------------
@@ -46,53 +46,49 @@ Outputs to /out/${id}/*.yaml
 
 ## Files Written
 
-Configuration
-|- /etc/ssh/sshd_config
-|- /etc/fail2ban/jail.local
-|- /home/cardano/.environment.sh
-|- /home/cardano/.environment-[block|relay].sh
-|- /etc/systemd/system/cardano-node.service
-|- /opt/cardano-node/scripts/startNode.sh
-|- /opt/cardano-node/scripts/liveView.sh
-|- /opt/cardano-node/.config.json
+Configuration  
+|- /etc/ssh/sshd_config  
+|- /etc/fail2ban/jail.local  
+|- /home/cardano/.environment.sh  
+|- /home/cardano/.environment-[block|relay].sh  
+|- /etc/systemd/system/cardano-node.service  
+|- /opt/cardano-node/scripts/startNode.sh  
+|- /opt/cardano-node/scripts/liveView.sh  
+|- /opt/cardano-node/.config.json  
 
-Block Node Setup
-|- /home/cardano/.environment-block.sh
-|- /opt/cardano-node/scripts/init/create.sh
-|- /opt/cardano-node/scripts/init/registerAddress
-|- /opt/cardano-node/scripts/init/registerKeys.sh
-|- /opt/cardano-node/scripts/init/registerPool.sh
-|- /opt/cardano-node/scripts/init/registerPoolGetId.sh
-|- /opt/cardano-node/scripts/init/registerPoolPledge.sh
-|- /opt/cardano-node/scripts/init/cleanup.sh
-|- /opt/cardano-node/scripts/init/registerTopology.sh 
-|- /opt/cardano-node/scripts/init/s3Sync.sh
-|- /opt/cardano-node/scripts/getTxInfo.sh
+Block Node Setup  
+|- /home/cardano/.environment-block.sh  
+|- /opt/cardano-node/scripts/init/create.sh  
+|- /opt/cardano-node/scripts/init/registerAddress  
+|- /opt/cardano-node/scripts/init/registerKeys.sh  
+|- /opt/cardano-node/scripts/init/registerPool.sh  
+|- /opt/cardano-node/scripts/init/registerPoolGetId.sh  
+|- /opt/cardano-node/scripts/init/registerPoolPledge.sh  
+|- /opt/cardano-node/scripts/init/cleanup.sh  
+|- /opt/cardano-node/scripts/init/registerTopology.sh   
+|- /opt/cardano-node/scripts/init/s3Sync.sh  
+|- /opt/cardano-node/scripts/getTxInfo.sh  
 
-Relay Node Setup
-|- /home/cardano/.environment-relay.sh
-|- /opt/cardano-node/scripts/init/create.sh
-|- /opt/cardano-node/scripts/init/registerTopology.sh 
-|- /opt/cardano-node/scripts/init/topologyUpdater.sh
-|- /opt/cardano-node/scripts/topologyPull.sh
+Relay Node Setup  
+|- /home/cardano/.environment-relay.sh  
+|- /opt/cardano-node/scripts/init/create.sh  
+|- /opt/cardano-node/scripts/init/registerTopology.sh   
+|- /opt/cardano-node/scripts/init/topologyUpdater.sh  
+|- /opt/cardano-node/scripts/topologyPull.sh  
 
 
 ## Useful Paths
 
-Node Database Path 
-/opt/cardano-node/db
+`/opt/cardano-node/db` - Node Database Path 
 
-Node Socket Path 
-/opt/cardano-node/db/socket 
+`/opt/cardano-node/db/socket ` - Node Socket Path 
 
-Node Private Path - Used for keys
-/opt/cardano-node/private 
+`/opt/cardano-node/private ` - Node Private Path - Used for keys
 
-Node Scripts Path - Used for setup and utility scripts
-/opt/cardano-node/scripts 
+`/opt/cardano-node/scripts ` - Node Scripts Path - Used for setup and utility scripts
 
-Node Config Path - Used for config and topology files 
-/opt/cardano-node/config 
+`/opt/cardano-node/config ` - Node Config Path - Used for config and topology files 
+
 
 ## Custom Alias & Shortcuts
 
