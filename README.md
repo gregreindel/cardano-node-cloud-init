@@ -109,5 +109,25 @@ Relay Node Setup
 - Might not work with Google Cloud - does not use systemctl enable.
 
 
+# Installing a cardano-node Server
+Note: It's recommended to use Ubuntu 20.04 x64.
+
+**Step 1**  
+- Take the file contents of the file named "User Data" and input that when creating your server.
+
+**Step 2**  
+- Allow the instance to boot. Once it does, it will begin running the Cloud-init configuration.
+- You can log into your server by running the following command:  
+`ssh cardano@the-server-ip-address -p the-port-you-chose`
+- Once you connect, run this command to watch the Cloud-init logs:
+`sudo tail -f /var/log/cloud-init-output.log`
+- Wait until it says "Cloud-init v. xxxx-ubuntu1~20.04.2 finished..." at the bottom, and/or the server reboots.
+
+**Step 3**  
+- Once the Cloud-init log says "finished" at the bottom, the installation is complete. It should take no longer than 5 minutes.
+- Verify the installation by running the following command: `logs`
+- This will display the logs for cardano-node. You should see logs similar to "Chain extended, new tip: xxxx at slot xxx" That means you are syncing with the blockchain.
+
+
 # Warranty
 There is no warranty. Use at your own risk. The code is public and fully auditable by you, and its your responsibility to do so.
