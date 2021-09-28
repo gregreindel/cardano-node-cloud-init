@@ -1,0 +1,1158 @@
+#cloud-config
+# date: Tue Sep 28 16:36:07 CDT 2021
+# node type: block
+# network: testnet
+# cardano-node version: 1.29.0
+
+# Instructions: 
+# Make sure the node has finished setup using the user data script
+# 1.) Create a file in the cardano user home directory (/home/cardano/) named block-setup.yaml with the contents of this.
+# 2.) Run the following commands:
+#   sudo cloud-init --file ~/block-setup.yaml single --name write_files --frequency once
+#   sudo . /opt/cardano-node/scripts/init/manualSetupHelper.sh
+
+write_files:
+- path: /run/tmp/.environment-block.sh
+  permissions: "750"
+  content: |
+    alias cni-balance=". /opt/cardano-node/scripts/getTxInfo.sh | jq -r '.balance'"
+    alias cni-init=". /opt/cardano-node/scripts/init/create.sh"
+    alias cni-rotate-kes=". /opt/cardano-node/scripts/init/rotateKES.sh"
+- path: /opt/cardano-node/scripts/init/cleanup.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    rm /opt/cardano-node/private/deleg.cert
+    rm /opt/cardano-node/private/stake.cert
+    rm /opt/cardano-node/private/pool.cert
+
+- path: /opt/cardano-node/scripts/init/create.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    if [[ $(du --apparent-size -B 1 /opt/cardano-node/db/immutable/ | cut -f1) -lt 3530646460 ]]; then
+        echo "You need to sync the database before setting up the node. Make sure your db is updated and the node is synced."
+        echo "If this is the first time starting your node, then this will take some time."
+        return
+    fi
+
+    if [ ! -f /home/cardano/.nodeSetup ]; then
+    cat > /home/cardano/.nodeSetup << EOF 
+    #!/bin/bash
+    Register Keys|Not Started
+    Register Address|Not Started
+    Register Pool|Not Started
+    Register Pool Pledge|Not Started
+    Register Pool ID|Not Started
+    Register Pool Topology|Not Started
+    EOF
+    fi 
+
+    if ! grep -q 'Register Keys|Complete' /home/cardano/.nodeSetup; then
+      sed -i "s#\Register Keys|Not Started#Register Keys|Running#g" /home/cardano/.nodeSetup
+      . /opt/cardano-node/scripts/init/registerKeys.sh
+      echo "Run cni-init to continue with setup."
+      return
+    fi
+
+    if ! grep -q 'Register Address|Complete' /home/cardano/.nodeSetup; then
+       sed -i "s#\Register Address|Not Started#Register Address|Running#g" /home/cardano/.nodeSetup
+      . /opt/cardano-node/scripts/init/registerAddress.sh
+      echo "Run cni-init to continue with setup."
+      return
+    fi
+
+    if ! grep -q 'Register Pool|Complete' /home/cardano/.nodeSetup; then
+      sed -i "s#\Register Pool|Not Started#Register Pool|Running#g" /home/cardano/.nodeSetup
+      . /opt/cardano-node/scripts/init/registerPool.sh
+      echo "Run cni-init to continue with setup."
+      return
+    fi
+
+    if ! grep -q 'Register Pool Pledge|Complete' /home/cardano/.nodeSetup; then
+      sed -i "s#\Register Pool Pledge|Not Started#Register Pool Pledge|Running#g" /home/cardano/.nodeSetup
+      . /opt/cardano-node/scripts/init/registerPoolPledge.sh
+      echo "Run cni-init to continue with setup."
+      return
+    fi
+    
+    if ! grep -q 'Register Pool ID|Complete' /home/cardano/.nodeSetup; then
+      sed -i "s#\Register Pool ID|Not Started#Register Pool ID|Running#g" /home/cardano/.nodeSetup
+      . /opt/cardano-node/scripts/init/registerPoolGetId.sh
+      echo "Run cni-init to continue with setup."
+      return
+    fi
+
+    if ! grep -q 'Register Pool Topology|Complete' /home/cardano/.nodeSetup; then
+      sed -i "s#\Register Pool Topology|Not Started#Register Pool Topology|Running#g" /home/cardano/.nodeSetup
+      . /opt/cardano-node/scripts/init/registerTopology.sh
+      echo "Run cni-init to complete setup."
+      return
+    fi
+    
+    . /opt/cardano-node/scripts/init/cleanup.sh
+    
+    echo "Setup Complete."
+
+
+
+- path: /opt/cardano-node/scripts/init/registerTopology.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    if [[ $NODE_TYPE == relay ]]; then
+    echo "cannot create block on relay node."
+    return;
+    fi
+
+    sudo systemctl stop cardano-node
+
+    RELAY_NODE_IP_1=""
+    RELAY_NODE_IP_2=""
+    RELAY_NODE_IP_3=""
+    RELAY_NODE_IP_4=""
+
+    while [[ $# -gt 0 ]]; do
+      key="$1"
+
+      case $key in
+        -ip1)
+          RELAY_NODE_IP_1="$2"
+          shift # past argument
+          shift # past value
+          ;;
+        -ip2)
+          RELAY_NODE_IP_2="$2"
+          shift # past argument
+          shift # past value
+          ;;
+        -ip3)
+          RELAY_NODE_IP_3="$2"
+          shift # past argument
+          shift # past value
+          ;;
+        -ip4)
+          RELAY_NODE_IP_4="$2"
+          shift # past argument
+          shift # past value
+          ;;
+        *)
+        # unknown option
+          shift # past argument
+          ;;
+      esac
+    done
+
+    if [ -z $RELAY_NODE_IP_1 ]; then 
+      echo "Enter relay node 1 IP address."
+      read RELAY_NODE_IP_1
+    fi
+
+    if [ -z $RELAY_NODE_IP_2 ]; then 
+      echo "Enter relay node 2 IP address. (Or enter to continue)"
+      read RELAY_NODE_IP_2
+    fi
+
+    # Validate IP
+    if [ -z $RELAY_NODE_IP_1 ]; then
+      echo "Missing primary relay node IP"
+      return
+    fi
+
+    for ELEMENT in "$RELAY_NODE_IP_1" "$RELAY_NODE_IP_2" "$RELAY_NODE_IP_3" "$RELAY_NODE_IP_4"; do
+    if [[ ! -z $ELEMENT ]]; then
+      if [[ $ELEMENT =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]
+      then
+      echo "Setting up $ELEMENT"
+      else
+        echo "$ELEMENT is not a valid IP"
+        return;
+      fi
+    fi
+    done
+    # End Validate IP 
+
+
+    # Topology
+    TOPOLOGY="
+      {
+        \"addr\": \"$RELAY_NODE_IP_1\",
+        \"port\": 6000,
+        \"valency\": 1
+      }"
+    for ELEMENT in "$RELAY_NODE_IP_2" "$RELAY_NODE_IP_3" "$RELAY_NODE_IP_4"; do
+      if [ ! -z $ELEMENT ]; then
+        TOPOLOGY+=",
+        {
+          \"addr\": \"$ELEMENT\",
+          \"port\": 6000,
+          \"valency\": 1
+        }"
+      fi
+    done
+    cat > /opt/cardano-node/config/testnet-topology.json << EOF 
+    {
+      "Producers": [ $TOPOLOGY ]
+    }
+    EOF
+    # End Topology
+
+
+    # Firewall
+    for NODE_IP in "$RELAY_NODE_IP_1" "$RELAY_NODE_IP_2" "$RELAY_NODE_IP_3" "$RELAY_NODE_IP_4"; do
+    if [ ! -z "$NODE_IP" ]
+    then
+        sudo ufw allow from "$NODE_IP" to any port "6000"
+    fi
+    done
+    # End Firewall
+
+    sudo systemctl start cardano-node
+
+    sed -i "s#\Register Pool Topology|Running#Register Pool Topology|Complete#g" /home/cardano/.nodeSetup
+
+- path: /opt/cardano-node/scripts/init/registerAddress.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    # !! Need to make sure node is running here
+
+    outputMessageSignTransaction() {
+    cat <<EOF
+
+    The transaction to register your stake address needs to be signed. You'll need to do this on your cold machine.
+
+    1.) Download the files from /home/cardano/step-2.zip to your cold environment.
+
+    Inside will be the following files:
+    - tx-stake-address-register.raw 
+    - step-2.sh 
+    - step-2.txt
+
+    2.) Move all the files into the directory you are generating your keys with.
+    3.) Execute 'step-2.sh', this will sign the transaction and generate one file.
+    4.) Upload the generated file 'tx-stake-address-register.signed' into /home/cardano/
+
+    EOF
+    }
+
+    function doSubmitTransaction(){
+      # Submit
+      submitTransaction=$( cardano-cli transaction submit \
+        --tx-file /home/cardano/tx-stake-address-register.signed \
+        --testnet-magic 1097911063 2>&1 )
+
+        if [[ $submitTransaction == 'Transaction successfully submitted.' ]]; then
+          sed -i "s#\Register Address|Running#Register Address|Complete#g" /home/cardano/.nodeSetup
+          echo "Transaction successfully submitted."
+        else
+          # Error with transaction
+          echo "Error submitting transaction"
+          return
+          # TODO: Logging
+        fi
+
+        # Cleanup
+        rm /home/cardano/tx-stake-address-register.signed
+        rm -rf /home/cardano/step-2.zip
+    }
+
+    if [ ! -f /opt/cardano-node/private/stake.cert ]; then
+      echo "Missing stake.cert"
+      return
+    fi
+
+    if [ ! -f /opt/cardano-node/private/payment.addr ]; then
+      echo "Missing payment.addr"
+      return
+    fi
+
+    if [ -f /home/cardano/tx-stake-address-register.signed ]; then
+      # Submit transaction
+      doSubmitTransaction
+      return
+    fi
+
+    STAKE_ADDRESS_DEPOSIT=$(cat /opt/cardano-node/params.json | jq -r '.stakeAddressDeposit')
+    total_balance=$(. /opt/cardano-node/scripts/getTxInfo.sh | jq -r '.balance')
+
+    if [ ${total_balance} -lt 2 ]; then
+      echo "No ADA. You need to send funds to your payment address to register your stake address."
+      echo "Send at least 3.50 ADA to $(cat /opt/cardano-node/private/payment.addr)"
+      return
+    fi
+
+    SLOT_NUMBER=$(. /opt/cardano-node/scripts/getTxInfo.sh | jq -r '.slotNumber')
+    tx_in=$(. /opt/cardano-node/scripts/getTxInfo.sh | jq -r '.txIn')
+    txcnt=$(. /opt/cardano-node/scripts/getTxInfo.sh | jq -r '.txCnt')
+
+    cardano-cli transaction build-raw \
+      ${tx_in} \
+      --tx-out $(cat $NODE_PRIVATE_PATH/payment.addr)+0 \
+      --invalid-hereafter $(( $SLOT_NUMBER + 10000 )) \
+      --fee 0 \
+      --out-file tx-stake-address-register.tmp \
+      --certificate /opt/cardano-node/private/stake.cert
+
+
+    FEE=$(cardano-cli transaction calculate-min-fee \
+      --tx-body-file tx-stake-address-register.tmp \
+      --tx-in-count ${txcnt} \
+      --tx-out-count 1 \
+      --mainnet \
+      --witness-count 2 \
+      --byron-witness-count 0 \
+      --protocol-params-file /opt/cardano-node/params.json | awk '{ print $1 }')
+
+    txOut=$((${total_balance}-${STAKE_ADDRESS_DEPOSIT}-${FEE}))
+
+    cardano-cli transaction build-raw \
+      ${tx_in} \
+      --tx-out $(cat /opt/cardano-node/private/payment.addr)+${txOut} \
+      --invalid-hereafter $(( $SLOT_NUMBER + 10000 )) \
+      --fee ${FEE} \
+      --certificate-file /opt/cardano-node/private/stake.cert \
+      --out-file /home/cardano/tx-stake-address-register.raw
+
+
+    # Generate file to download and run on cold machine
+    if [ ! -f /home/cardano/step-2.sh ]; then
+      cat > /home/cardano/step-2.sh << EOF 
+        #!/bin/bash
+        cardano-cli transaction sign \
+          --tx-body-file tx-stake-address-register.raw \
+          --signing-key-file payment.skey \
+          --signing-key-file stake.skey \
+          --testnet-magic 1097911063 \
+          --out-file tx-stake-address-register.signed
+
+      echo "Upload tx-stake-address-register.signed into /home/cardano/ and re-run"
+    EOF
+    chmod +x /home/cardano/step-2.sh
+    fi
+
+    # Generate file for step 2 instructions
+    if [ ! -f /home/cardano/step-2.txt ]; then
+      echo $(outputMessageSignTransaction) > /home/cardano/step-2.txt
+    fi 
+
+    # zip whats needed to transfer to cold machine
+    zip -q -j \
+      /home/cardano/step-2.zip \
+      /home/cardano/tx-stake-address-register.raw \
+      /home/cardano/step-2.sh \
+      /home/cardano/step-2.txt
+
+    # Cleanup
+    rm -rf /home/cardano/step-2.sh
+    rm -rf /home/cardano/step-2.txt
+    rm -rf /home/cardano/tx-stake-address-register.tmp
+    rm -rf /home/cardano/tx-stake-address-register.raw
+
+    # Output instructions
+    if [ ! -f /home/cardano/tx-stake-address-register.signed ]; then
+      outputMessageSignTransaction
+
+      # Start loop waiting for files
+      RUN=true
+      while $RUN
+      do
+      if [ -f /home/cardano/tx-stake-address-register.signed ]; then
+          RUN=false
+          echo "Found files, continuing."
+      else
+          sleep 2
+      fi
+      done
+      # End loop waiting for files
+    fi
+
+    if [ -f /home/cardano/tx-stake-address-register.signed ]; then
+      # Submit transaction
+      doSubmitTransaction
+    fi
+- path: /opt/cardano-node/scripts/init/registerKeys.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    nextStepMessage() {
+    cat <<EOF
+
+    Keys have been generated, download them to your cold environment as a backup and so you can use them there.
+
+    1.) Download the files from /home/cardano/step-1.zip to your cold environment. 
+
+    Inside will be the following files:
+    - kes.skey 
+    - kes.vkey 
+    - vrf.skey
+    - vrf.vkey
+    - step-1.sh 
+    - step-1.txt
+
+    2.) Move all files into the directory you plan on keeping/generating your keys with.
+    3.) Execute 'step-1.sh'. At this point many files will be generated.
+    4.) Upload 'node.cert', 'payment.addr', and 'stake.cert' from cold environment into /home/cardano/ 
+
+    EOF
+    }
+
+    SLOTS_PER_KES_PERIOD=$(cat $CONFIG_SHELLY | jq -r '.slotsPerKESPeriod')
+    SLOT_NUMBER=$(cardano-cli query tip --testnet-magic 1097911063 | jq -r '.slot')
+    KES_PERIOD_START=$(($SLOT_NUMBER / $SLOTS_PER_KES_PERIOD))
+
+    # Make sure node is running, etc 
+
+    if [ -z $KES_PERIOD_START ]; then
+      message="Missing KES_PERIOD_START. Is the node updated?"
+      echo "$(tput setaf 1)$message$(tput sgr0)"
+      return
+    fi
+
+
+    # Generate KES
+    if [ ! -f /opt/cardano-node/private/kes.vkey ]; 
+    then
+      cardano-cli node key-gen-KES \
+      --verification-key-file /opt/cardano-node/private/kes.vkey \
+      --signing-key-file /opt/cardano-node/private/kes.skey
+    fi
+
+
+    # Generate VRF
+    if [ ! -f /opt/cardano-node/private/vrf.vkey ]; then
+      cardano-cli node key-gen-VRF \
+        --verification-key-file /opt/cardano-node/private/vrf.vkey \
+        --signing-key-file /opt/cardano-node/private/vrf.skey
+
+      chmod 400 /opt/cardano-node/private/vrf.skey
+    fi
+
+    # Generate pool params
+    if [ ! -f /opt/cardano-node/params.json ]; then
+      cardano-cli query protocol-parameters \
+          --testnet-magic 1097911063 \
+          --out-file /opt/cardano-node/params.json
+    fi
+
+
+    # Generate file to download and run on cold machine
+    if [ ! -f /home/cardano/step-1.sh ]; then
+      cat > /home/cardano/step-1.sh << EOF 
+        #!/bin/bash
+
+        # Generate counter
+        cardano-cli node key-gen \\
+          --cold-verification-key-file node.vkey \\
+          --cold-signing-key-file node.skey \\
+          --operational-certificate-issue-counter node.counter
+
+        # Generate node.cert
+        cardano-cli node issue-op-cert \\
+          --kes-verification-key-file kes.vkey\\
+          --cold-signing-key-file node.skey \\
+          --operational-certificate-issue-counter node.counter \\
+          --kes-period $KES_PERIOD_START \\
+          --out-file node.cert
+
+        # Generate payment.addr
+        cardano-cli address key-gen \\
+            --verification-key-file payment.vkey \\
+            --signing-key-file payment.skey
+
+        cardano-cli stake-address key-gen \\
+            --verification-key-file stake.vkey \\
+            --signing-key-file stake.skey
+
+        cardano-cli stake-address build \\
+            --stake-verification-key-file stake.vkey \\
+            --out-file stake.addr \\
+            --testnet-magic 1097911063
+
+        cardano-cli address build \\
+            --payment-verification-key-file payment.vkey \\
+            --stake-verification-key-file stake.vkey \\
+            --out-file payment.addr \\
+            --testnet-magic 1097911063
+
+        cardano-cli stake-address registration-certificate \\
+            --stake-verification-key-file stake.vkey \\
+            --out-file stake.cert
+
+        echo "Now upload node.cert, payment.addr, stake.cert from cold into /home/cardano/ on the node. Then re-run the setup."
+    EOF
+    chmod +x /home/cardano/step-1.sh
+    fi
+
+    # Generate file for step 1 instructions
+    if [ ! -f /home/cardano/step-1.txt ]; then
+      echo $(nextStepMessage) > /home/cardano/step-1.txt
+    fi 
+
+    # zip whats needed to transfer to cold machine
+    if [ ! -f /home/cardano/step-1.zip ]; then
+      zip -q -j \
+        /home/cardano/step-1.zip \
+        /opt/cardano-node/private/kes.skey \
+        /opt/cardano-node/private/kes.vkey \
+        /opt/cardano-node/private/vrf.skey \
+        /opt/cardano-node/private/vrf.vkey \
+        /home/cardano/step-1.sh \
+        /home/cardano/step-1.txt
+    fi
+
+    rm -rf /home/cardano/step-1.sh
+    rm -rf /home/cardano/step-1.txt
+
+    # Output instructions
+    if [ ! -f /home/cardano/node.cert ] ||
+      [ ! -f /home/cardano/stake.cert ] ||
+      [ ! -f /home/cardano/payment.addr ] ; then
+      
+      nextStepMessage
+
+      # Start loop waiting for files
+      RUN=true
+      while $RUN
+      do
+      if [ -f /home/cardano/node.cert ] && [ -f /home/cardano/stake.cert ] && [ -f /home/cardano/payment.addr ]; then
+          RUN=false
+          echo "Found files, continuing."
+      else
+          sleep 2
+      fi
+      done
+      # End loop waiting for files
+    fi
+
+    # Clean up step 1 archive
+    rm -rf /home/cardano/step-1.zip
+
+    # Stop the node
+    sudo systemctl stop cardano-node
+
+    # Copy files transferred from cold into their locations
+    mv /home/cardano/node.cert /opt/cardano-node/private/node.cert
+    mv /home/cardano/stake.cert /opt/cardano-node/private/stake.cert
+    mv /home/cardano/payment.addr /opt/cardano-node/private/payment.addr
+
+    # Update config with path to keys
+    sudo rm /opt/cardano-node/scripts/startNode.sh
+    cat > /opt/cardano-node/scripts/startNode.sh << EOF 
+    /usr/local/bin/cardano-node run --topology /opt/cardano-node/config/testnet-topology.json --database-path /opt/cardano-node/db --socket-path /opt/cardano-node/db/socket --host-addr 0.0.0.0 --port 6000 --config /opt/cardano-node/config/testnet-config.json --shelley-kes-key /opt/cardano-node/private/kes.skey --shelley-vrf-key $NODE_PRIVATE_PATH/vrf.skey --shelley-operational-certificate /opt/cardano-node/private/node.cert
+    EOF
+    chmod +x /opt/cardano-node/scripts/startNode.sh
+
+    # Start the node
+    sudo systemctl start cardano-node
+
+    echo "Initial setup complete!"
+    echo "For the next step you will need to send yourself some ADA to complete a transaction."
+    echo "Send ADA to $(cat /opt/cardano-node/private/payment.addr)"
+
+    # Clean up
+    rm -rf /opt/cardano-node/private/kes.vkey
+    rm -rf /opt/cardano-node/private/vrf.vkey
+
+    sed -i "s#\Register Keys|Running#Register Keys|Complete#g" /home/cardano/.nodeSetup
+
+- path: /opt/cardano-node/scripts/init/registerPool.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    outputMessagePublicUrlStep() {
+    cat <<EOF
+
+    Next, upload the pool meta to a public url. 
+    For help see: https://www.coincashew.com/coins/overview-ada/guide-how-to-build-a-haskell-stakepool-node/how-to-upload-poolmetadata.json-to-github
+
+    1.) Download /home/cardano/poolMetaData.json
+    2.) Upload it to a public server
+    3.) Enter the url to the uploaded file below
+
+    Note: You must upload to a public server. The server must return a 200, with no authentication required.
+
+    EOF
+    }
+
+    outputMessageGenerateCertificates() {
+    cat <<EOF
+
+    Now create a pool certificate and delegate certificate; you'll need to do this on your cold machine.
+
+    1.) Download the files from /home/cardano/step-3.zip to your cold environment.
+
+    Inside will be the following files:
+    - step-3.sh 
+
+    2.) Move all the files into the directory you are generating your keys with.
+    3.) Execute 'step-3.sh', this will create two certificate files.
+    4.) Upload both 'pool.cert' and 'deleg.cert' into /home/cardano/
+
+    EOF
+    }
+
+    function completePoolPledge(){
+      sudo mv /home/cardano/pool.cert /opt/cardano-node/private/pool.cert
+      sudo mv /home/cardano/deleg.cert /opt/cardano-node/private/deleg.cert
+      sed -i "s#\Register Pool|Running#Register Pool|Complete#g" /home/cardano/.nodeSetup
+    }
+    
+    if [ -f /home/cardano/pool.cert ] && [ -f /home/cardano/deleg.cert ]; then
+      completePoolPledge
+      return
+    fi
+
+    if [ -f /opt/cardano-node/private/pool.cert ] && [ -f /opt/cardano-node/private/deleg.cert ]; then
+      return
+    fi
+
+    if [ ! -f /opt/cardano-node/poolMetaData.json ]; then
+
+      echo "Enter pool name:"
+      read REGISTER_POOL_NAME
+
+      # Register pool ticker
+      REGISTER_POOL_TICKER=""
+      RUN=true
+      while $RUN
+      do
+        echo "Enter pool ticker:"
+        read REGISTER_POOL_TICKER
+        if [ ${#REGISTER_POOL_TICKER} -gt 5 ]; then
+          message="Must be 5 characters or less"
+          echo "$(tput setaf 1)$message$(tput sgr0)"
+        else
+          RUN=false
+        fi
+      done
+
+
+      echo "Enter pool description:"
+      read REGISTER_POOL_DESCRIPTION
+
+      echo "Enter pool homepage:"
+      read REGISTER_POOL_WEBSITE
+
+      cat > /opt/cardano-node/poolMetaData.json << EOF
+    {
+      "name": "$REGISTER_POOL_NAME",
+      "description": "$REGISTER_POOL_DESCRIPTION",
+      "ticker": "$REGISTER_POOL_TICKER",
+      "homepage": "$REGISTER_POOL_WEBSITE"
+    }
+    EOF
+    fi
+
+    currentPoolMetaHash=$( cardano-cli stake-pool metadata-hash --pool-metadata-file /opt/cardano-node/poolMetaData.json )
+    
+    cp /opt/cardano-node/poolMetaData.json /home/cardano/poolMetaData.json
+
+    outputMessagePublicUrlStep
+
+    # Register pool meta public url
+    POOL_META_PUBLIC_URL=""
+    RUN=true
+    while $RUN
+    do
+      echo "Enter public url" 
+      read POOL_META_PUBLIC_URL
+      if [ ${#POOL_META_PUBLIC_URL} -gt 64 ]; then
+        message="Must be 64 characters or less"
+        echo "$(tput setaf 1)$message$(tput sgr0)"
+      else
+        RUN=false
+      fi
+    done
+
+    # Start loop waiting for public url to be live
+    RUN=true
+    while $RUN
+    do
+    response=$(curl --write-out '%{http_code}' --silent --output /dev/null $POOL_META_PUBLIC_URL)
+      if [ $response == 200 ]; then
+        wget -q -O /tmp/test-pool-meta.json -N $POOL_META_PUBLIC_URL
+        poolMetaDataHash=$(cardano-cli stake-pool metadata-hash --pool-metadata-file /tmp/test-pool-meta.json)
+
+        if [[ $poolMetaDataHash == $currentPoolMetaHash ]]; then
+            RUN=false
+        else 
+          echo "Hash does not match"
+        fi
+
+        rm -rf /tmp/test-pool-meta.json
+      else
+          sleep 2
+      fi
+    done
+    # End loop waiting for files
+
+
+
+    echo "Enter pledge amount"
+    read POOL_PLEDGE_AMOUNT
+
+    echo "Enter pool margin (0 - 1. Example: 0.15)"
+    read POOL_MARGIN
+
+    echo "Enter pool relay hostname. "
+    read POOL_RELAY_DOMAIN
+
+
+    # Generate file to download and run on cold machine
+    if [ ! -f /home/cardano/step-3.sh ]; then
+      cat > /home/cardano/step-3.sh << EOF 
+        #!/bin/bash
+        cardano-cli stake-pool registration-certificate \\
+          --testnet-magic 1097911063 \\
+          --cold-verification-key-file node.vkey \\
+          --vrf-verification-key-file vrf.vkey \\
+          --pool-pledge $POOL_PLEDGE_AMOUNT \\
+          --pool-cost 345000000 \\
+          --pool-margin $POOL_MARGIN \\
+          --pool-reward-account-verification-key-file stake.vkey \\
+          --pool-owner-stake-verification-key-file stake.vkey \\
+          --single-host-pool-relay $POOL_RELAY_DOMAIN \\
+          --pool-relay-port 6000 \\
+          --metadata-url $POOL_META_PUBLIC_URL \\
+          --metadata-hash $currentPoolMetaHash \\
+          --out-file pool.cert
+
+        cardano-cli stake-address delegation-certificate \\
+          --stake-verification-key-file stake.vkey \\
+          --cold-verification-key-file node.vkey \\
+          --out-file deleg.cert
+
+        echo "Upload both pool.cert and deleg.cert into node /home/cardano"
+    EOF
+
+      zip -q -j \
+        /home/cardano/step-3.zip \
+        /home/cardano/step-3.sh
+
+      rm -rf /home/cardano/step-3.sh
+    fi
+
+    outputMessageGenerateCertificates
+
+    # Start loop waiting for files
+    RUN=true
+    while $RUN
+    do
+    if [ -f /home/cardano/pool.cert ] && [ -f /home/cardano/deleg.cert ]; then
+        completePoolPledge
+        rm -rf /home/cardano/step-3.zip
+        echo "Found files pool.cert and deleg.cert."
+        echo "Done registering pool meta."
+        RUN=false
+    else
+        sleep 2
+    fi
+    done
+    # End loop waiting for files
+- path: /opt/cardano-node/scripts/init/registerPoolGetId.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    outputMessageStep() {
+    cat <<EOF
+
+    Confirm your pool is registered by getting your pool ID.
+
+    1.) Download 'step-5.zip' from /home/cardano/step-5.zip to your cold environment. Extract the files.
+    2.) Move all the files into the directory you plan on keeping/generating your keys with.
+    3.) Execute 'step-5.sh'. It will create a file called pid.txt.
+    4.) Upload 'pid.txt' into /home/cardano
+
+    EOF
+    }
+
+    verifyPoolId(){
+      cardano-cli query stake-snapshot --stake-pool-id $(cat /home/cardano/pid.txt) --testnet-magic 1097911063
+      sed -i "s#\Register Pool ID|Running#Register Pool ID|Complete#g" /home/cardano/.nodeSetup
+    }
+
+    
+    if [ -f /home/cardano/pid.txt ]; then
+      verifyPoolId
+      return
+    fi
+
+
+    # Generate file to download and run on cold machine
+    if [ ! -f /home/cardano/step-5.sh ]; then
+      cat > /home/cardano/step-5.sh << EOF 
+        #!/bin/bash
+        cardano-cli stake-pool id --cold-verification-key-file node.vkey --output-format hex > pid.txt
+
+        echo "Upload pid.txt into node /home/cardano"
+    EOF
+
+      zip -q -j \
+        /home/cardano/step-5.zip \
+        /home/cardano/step-5.sh
+
+      rm -rf /home/cardano/step-5.sh
+    fi
+
+    outputMessageStep
+
+    # Start loop waiting for files
+    RUN=true
+    while $RUN
+    do
+    if [ -f /home/cardano/pid.txt ]; then
+        verifyPoolId
+        rm -rf /home/cardano/step-5.zip
+        RUN=false
+    else
+        sleep 2
+    fi
+    done
+    # End loop waiting for files
+- path: /opt/cardano-node/scripts/init/registerPoolPledge.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    messageSignTransaction() {
+    cat <<EOF
+
+    The transaction to register your pool needs to be signed. You'll need to do this on your cold machine.
+
+    1.) Download the files from /home/cardano/step-4.zip to your cold environment.
+
+    Inside will be the following files:
+    - tx-register-pool.raw
+    - step-4.sh 
+    - step-4.txt
+
+    2.) Move all the files into the directory you are generating your keys with.
+    3.) Execute 'step-2.sh', this will sign the transaction and generate one file.
+    4.) Upload the generated file 'tx-register-pool.signed' into /home/cardano/
+
+    EOF
+    }
+
+    function doSubmitTransaction(){
+      # Submit
+      submitTransaction=$( cardano-cli transaction submit \
+          --tx-file /home/cardano/tx-register-pool.signed \
+          --testnet-magic 1097911063 2>&1 )
+
+        if [[ $submitTransaction == 'Transaction successfully submitted.' ]]; then
+          sed -i "s#\Register Pool Pledge|Running#Register Pool Pledge|Complete#g" /home/cardano/.nodeSetup
+          echo "Transaction successfully submitted."
+        else
+          # Error with transaction
+          echo "Error submitting transaction"
+          return
+          # TODO: Logging
+        fi
+
+        # Cleanup
+        rm -rf /home/cardano/tx-register-pool.signed
+        rm -rf /home/cardano/step-4.zip
+    }
+
+
+    if [ ! -f /opt/cardano-node/private/pool.cert ]; then
+      message="Missing /opt/cardano-node/private/pool.cert"
+      echo "$(tput setaf 1)$message$(tput sgr0)"
+      return
+    fi
+
+    if [ ! -f /opt/cardano-node/private/deleg.cert ]; then
+      message="Missing /opt/cardano-node/private/deleg.cert"
+      echo "$(tput setaf 1)$message$(tput sgr0)"
+      return
+    fi
+
+    # If signed transaction exists, try to submit it.
+    if [ -f /home/cardano/tx-register-pool.signed ]; then
+      doSubmitTransaction
+      return
+    fi
+
+    echo "Register Pool Pledge"
+
+    stakePoolDeposit=$(cat /opt/cardano-node/params.json | jq -r '.stakePoolDeposit')
+    total_balance=$(. /opt/cardano-node/scripts/getTxInfo.sh | jq -r '.balance')
+
+    # If address balance is not enough for deposit...
+    if [ ${total_balance} -lt ${stakePoolDeposit} ]; then
+      echo "Not enough ADA. You need to send funds to your payment address. The deposit is ${stakePoolDeposit}, you have ${total_balance}"
+      echo "Send at least ${stakePoolDeposit} to $(cat /opt/cardano-node/private/payment.addr)"
+      return
+    fi
+
+    currentSlot=$(. /opt/cardano-node/scripts/getTxInfo.sh | jq -r '.slotNumber')
+    tx_in=$(. /opt/cardano-node/scripts/getTxInfo.sh | jq -r '.txIn')
+    txcnt=$(. /opt/cardano-node/scripts/getTxInfo.sh | jq -r '.txCnt')
+
+    # Build transaction
+    cardano-cli transaction build-raw \
+        ${tx_in} \
+        --tx-out $(cat /opt/cardano-node/private/payment.addr)+$(( ${total_balance} - ${stakePoolDeposit}))  \
+        --invalid-hereafter $(( ${currentSlot} + 10000)) \
+        --fee 0 \
+        --certificate-file /opt/cardano-node/private/pool.cert \
+        --certificate-file /opt/cardano-node/private/deleg.cert \
+        --out-file /home/cardano/tx-register-pool.tmp
+
+    fee=$(cardano-cli transaction calculate-min-fee \
+        --tx-body-file /home/cardano/tx-register-pool.tmp \
+        --tx-in-count ${txcnt} \
+        --tx-out-count 1 \
+        --testnet-magic 1097911063 \
+        --witness-count 3 \
+        --byron-witness-count 0 \
+        --protocol-params-file /opt/cardano-node/params.json | awk '{ print $1 }')
+
+    txOut=$((${total_balance}-${stakePoolDeposit}-${fee}))
+
+    cardano-cli transaction build-raw \
+        ${tx_in} \
+        --tx-out $(cat /opt/cardano-node/private/payment.addr)+${txOut} \
+        --invalid-hereafter $(( ${currentSlot} + 10000)) \
+        --fee ${fee} \
+        --certificate-file /opt/cardano-node/private/pool.cert \
+        --certificate-file /opt/cardano-node/private/deleg.cert \
+        --out-file /home/cardano/tx-register-pool.raw
+
+
+    # Generate file to download and run on cold machine
+    if [ ! -f /home/cardano/step-4.sh ]; then
+      cat > /home/cardano/step-4.sh << EOF 
+        #!/bin/bash
+        cardano-cli transaction sign --tx-body-file tx-register-pool.raw --signing-key-file payment.skey --signing-key-file node.skey --signing-key-file stake.skey --testnet-magic 1097911063 --out-file tx-register-pool.signed
+        echo "Upload tx-register-pool.signed into /home/cardano/"
+    EOF
+    chmod +x /home/cardano/step-4.sh
+    fi
+
+    # Generate file for step 4 instructions
+    if [ ! -f /home/cardano/step-4.txt ]; then
+      echo $(messageSignTransaction) > /home/cardano/step-4.txt
+    fi 
+
+    # zip whats needed to transfer to cold machine
+    zip -q -j \
+      /home/cardano/step-4.zip \
+      /home/cardano/tx-register-pool.raw \
+      /home/cardano/step-4.sh \
+      /home/cardano/step-4.txt
+
+    # Cleanup
+    rm -rf /home/cardano/step-4.sh
+    rm -rf /home/cardano/step-4.txt
+    rm -rf /home/cardano/tx-register-pool.tmp
+    rm -rf /home/cardano/tx-register-pool.raw
+
+    # Output instructions
+    if [ ! -f /home/cardano/tx-register-pool.signed ]; then
+
+      messageSignTransaction
+
+      # Start loop waiting for files
+      RUN=true
+      while $RUN
+      do
+      if [ -f /home/cardano/tx-register-pool.signed ]; then
+          RUN=false
+          echo "Found tx-register-pool.signed! Continuing"
+          sleep 2
+      else
+          sleep 2
+      fi
+      done
+      # End loop waiting for files
+    fi
+
+    if [ -f /home/cardano/tx-register-pool.signed ]; then
+      # Submit transaction
+      doSubmitTransaction
+    fi
+- path: /opt/cardano-node/scripts/init/s3Sync.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+    
+    # If you already registered a pool - 
+    # Use this to clone the necessary keys and certs from an S3 bucket. 
+
+    sudo apt-get install awscli
+
+    echo "Enter AWS S3 Bucket:"
+    read S3_CONFIG_PATH
+
+    echo "Enter AWS Region:"
+    read S3_REGION
+
+    echo "Enter AWS Access Key ID:"
+    read AWS_ACCESS_KEY_ID
+
+    echo "Enter AWS Secret Access Key:"
+    read AWS_SECRET_ACCESS_KEY
+
+    export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+    export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+    export AWS_DEFAULT_REGION=$S3_REGION
+
+    aws s3 cp "s3://$S3_CONFIG_PATH/node.cert" "/opt/cardano-node/private/node.cert"
+    aws s3 cp "s3://$S3_CONFIG_PATH/kes.skey" "/opt/cardano-node/private/kes.skey"
+    aws s3 cp "s3://$S3_CONFIG_PATH/vrf.skey" "/opt/cardano-node/private/vrf.skey"
+    aws s3 cp "s3://$S3_CONFIG_PATH/payment.addr" "/opt/cardano-node/private/payment.addr"
+
+- path: /opt/cardano-node/scripts/getTxInfo.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    if [ ! -f $NODE_PRIVATE_PATH/payment.addr ]; then
+      echo "Missing payment.addr"
+      return
+    fi
+
+    SLOT_NUMBER=$(cardano-cli query tip --testnet-magic 1097911063 | jq -r '.slot')
+
+    cardano-cli query utxo \
+        --address $(cat "$NODE_PRIVATE_PATH/payment.addr") \
+        --testnet-magic 1097911063 > /tmp/fullUtxo.out
+
+    tail -n +3 /tmp/fullUtxo.out | sort -k3 -nr > /tmp/balance.out
+
+    tx_in=""
+    total_balance=0
+    while read -r utxo; do
+        in_addr=$(awk '{ print $1 }' <<< "${utxo}")
+        idx=$(awk '{ print $2 }' <<< "${utxo}")
+        utxo_balance=$(awk '{ print $3 }' <<< "${utxo}")
+        total_balance=$((${total_balance}+${utxo_balance}))
+        tx_in="${tx_in} --tx-in ${in_addr}#${idx}"
+    done < /tmp/balance.out
+    txcnt=$(cat /tmp/balance.out | wc -l)
+    
+    rm -rf /tmp/balance.out 
+    rm -rf /tmp/fullUtxo.out 
+
+    echo "{ \"txIn\": \"${tx_in}\", \"txCnt\": \"${txcnt}\", \"balance\": \"${total_balance}\", \"slotNumber\": \"${SLOT_NUMBER}\" }"
+- path: /opt/cardano-node/scripts/info.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    SLOTS_PER_KES_PERIOD=$(cat $CONFIG_SHELLY | jq -r '.slotsPerKESPeriod')
+    SLOT_NUMBER=$(cardano-cli query tip --testnet-magic 1097911063 | jq -r '.slot')
+    KES_PERIOD=$(($SLOT_NUMBER / $SLOTS_PER_KES_PERIOD))
+    KES_PERIOD_START=$KES_PERIOD
+
+
+    MIN_POOL_COST=$(cat /opt/cardano-node/params.json | jq -r .minPoolCost)
+
+    echo -e '+--------------------------------------+'
+    echo -e '|           Node Information           |'
+    echo -e '+---------------------+----------------+'
+    echo -e "| Slots per period    | $(printf "%14s" "$SLOTS_PER_KES_PERIOD") |"
+    echo -e '+---------------------+----------------+'
+    echo -e "| Slot number         | $(printf "%14s" "$SLOT_NUMBER") |"
+    echo -e '+---------------------+----------------+'
+    echo -e "| KES period          | $(printf "%14s" "$KES_PERIOD") |"
+    echo -e "+---------------------+----------------+"
+    echo -e "| Period Start        | $(printf "%14s" "$KES_PERIOD_START") |"
+    echo -e '+---------------------+----------------+'
+    echo -e "| Min Pool Cost       | $(printf "%14s" "$MIN_POOL_COST") |"
+    echo -e '+---------------------+----------------+'
+
+
+
+
+- path: /opt/cardano-node/scripts/rotateKES.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+  
+    slotNo=$(cardano-cli query tip --mainnet | jq -r '.slot')
+    slotsPerKESPeriod=$(cat /opt/cardano-node/config/testnet-shelley-genesis.json | jq -r '.slotsPerKESPeriod')
+    kesPeriod=$((${slotNo} / ${slotsPerKESPeriod}))
+    startKesPeriod=${kesPeriod}
+
+    cardano-cli node key-gen-KES \
+        --verification-key-file /tmp/kes.vkey \
+        --signing-key-file /tmp/kes.skey
+
+
+    # Generate file to download and run on cold machine
+    if [ ! -f /home/cardano/rotate-kes.sh ]; then
+      cat > /home/cardano/rotate-kes.sh << EOF 
+        #!/bin/bash
+
+        cardano-cli node issue-op-cert \
+            --kes-verification-key-file kes.vkey \
+            --cold-signing-key-file node.skey \
+            --operational-certificate-issue-counter node.counter \
+            --kes-period ${startKesPeriod} \
+            --out-file node.cert
+
+        echo "Upload node.cert into node /home/cardano"
+    EOF
+
+      zip -q -j \
+        /home/cardano/rotate-kes.zip \
+        /home/cardano/rotate-kes.sh \
+        /tmp/kes.skey \
+        /tmp/kes.vkey
+
+      rm -rf /home/cardano/rotate-kes.sh
+    fi
+
+    # Start loop waiting for files
+    RUN=true
+    while $RUN
+    do
+    if [ -f /home/cardano/node.cert ]; then
+        mv /home/cardano/node.cert /opt/cardano-node/private/node.cert
+        mv /tmp/kes.skey /opt/cardano-node/private/kes.skey
+        mv /tmp/kes.vkey /opt/cardano-node/private/kes.vkey
+        rm -rf /home/cardano/rotate-kes.zip
+        RUN=false
+    else
+        sleep 2
+    fi
+    done
+    # End loop waiting for files
+
+    sudo systemctl restart cardano-node
+
+- path: /opt/cardano-node/scripts/init/manualSetupHelper.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    # This is used when splitting user data and setup scripts
+    # runcmd only runs on boot, so we need another way to run those commands
+    
+    if [ ! -f /run/tmp/.environment-block.sh ]; then
+    sudo mv /run/tmp/.environment-block.sh /home/cardano/.environment-block.sh
+    fi
+
+    if [ ! -f /home/cardano/.environment-block.sh ]; then
+    sudo chown cardano:cardano /home/cardano/.environment-block.sh
+    echo "source .environment-block.sh" >> /home/cardano/.bashrc
+    fi
+
+    sudo chown cardano:cardano /opt/cardano-node -R
+    . ~/.bashrc
+runcmd:
+- sudo mv /run/tmp/.environment-block.sh /home/cardano/.environment-block.sh
+- sudo chown cardano:cardano /home/cardano/.environment-block.sh
+- echo "source .environment-block.sh" >> /home/cardano/.bashrc
+- sudo chown cardano:cardano /opt/cardano-node -R
+

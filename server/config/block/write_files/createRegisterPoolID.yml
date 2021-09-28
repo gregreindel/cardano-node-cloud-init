@@ -1,0 +1,61 @@
+- path: ${NODE_SCRIPTS_PATH}/init/registerPoolGetId.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    outputMessageStep() {
+    cat <<EOF
+
+    Confirm your pool is registered by getting your pool ID.
+
+    1.) Download 'step-5.zip' from /home/${NODE_USER}/step-5.zip to your cold environment. Extract the files.
+    2.) Move all the files into the directory you plan on keeping/generating your keys with.
+    3.) Execute 'step-5.sh'. It will create a file called pid.txt.
+    4.) Upload 'pid.txt' into /home/${NODE_USER}
+
+    EOF
+    }
+
+    verifyPoolId(){
+      cardano-cli query stake-snapshot --stake-pool-id $(cat /home/${NODE_USER}/pid.txt) ${NODE_NETWORK_FLAG}
+      sed -i "s#\Register Pool ID|Running#Register Pool ID|Complete#g" /home/cardano/.nodeSetup
+    }
+
+    
+    if [ -f /home/${NODE_USER}/pid.txt ]; then
+      verifyPoolId
+      return
+    fi
+
+
+    # Generate file to download and run on cold machine
+    if [ ! -f /home/${NODE_USER}/step-5.sh ]; then
+      cat > /home/${NODE_USER}/step-5.sh << EOF 
+        #!/bin/bash
+        cardano-cli stake-pool id --cold-verification-key-file node.vkey --output-format hex > pid.txt
+
+        echo "Upload pid.txt into node /home/${NODE_USER}"
+    EOF
+
+      zip -q -j \
+        /home/${NODE_USER}/step-5.zip \
+        /home/${NODE_USER}/step-5.sh
+
+      rm -rf /home/${NODE_USER}/step-5.sh
+    fi
+
+    outputMessageStep
+
+    # Start loop waiting for files
+    RUN=true
+    while $RUN
+    do
+    if [ -f /home/${NODE_USER}/pid.txt ]; then
+        verifyPoolId
+        rm -rf /home/${NODE_USER}/step-5.zip
+        RUN=false
+    else
+        sleep 2
+    fi
+    done
+    # End loop waiting for files

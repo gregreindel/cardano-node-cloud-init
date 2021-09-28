@@ -1,0 +1,5 @@
+- name: cardano
+  ssh-authorized-keys: ${SSH_KEY}
+  sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+  groups: sudo
+  shell: /bin/bash

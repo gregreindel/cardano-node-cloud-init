@@ -1,0 +1,185 @@
+- path: ${NODE_SCRIPTS_PATH}/init/registerKeys.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    nextStepMessage() {
+    cat <<EOF
+
+    Keys have been generated, download them to your cold environment as a backup and so you can use them there.
+
+    1.) Download the files from /home/${NODE_USER}/step-1.zip to your cold environment. 
+
+    Inside will be the following files:
+    - kes.skey 
+    - kes.vkey 
+    - vrf.skey
+    - vrf.vkey
+    - step-1.sh 
+    - step-1.txt
+
+    2.) Move all files into the directory you plan on keeping/generating your keys with.
+    3.) Execute 'step-1.sh'. At this point many files will be generated.
+    4.) Upload 'node.cert', 'payment.addr', and 'stake.cert' from cold environment into /home/${NODE_USER}/ 
+
+    EOF
+    }
+
+    SLOTS_PER_KES_PERIOD=$(cat $CONFIG_SHELLY | jq -r '.slotsPerKESPeriod')
+    SLOT_NUMBER=$(cardano-cli query tip ${NODE_NETWORK_FLAG} | jq -r '.slot')
+    KES_PERIOD_START=$(($SLOT_NUMBER / $SLOTS_PER_KES_PERIOD))
+
+    # Make sure node is running, etc 
+
+    if [ -z $KES_PERIOD_START ]; then
+      message="Missing KES_PERIOD_START. Is the node updated?"
+      echo "$(tput setaf 1)$message$(tput sgr0)"
+      return
+    fi
+
+
+    # Generate KES
+    if [ ! -f ${NODE_PRIVATE_PATH}/kes.vkey ]; 
+    then
+      cardano-cli node key-gen-KES \
+      --verification-key-file ${NODE_PRIVATE_PATH}/kes.vkey \
+      --signing-key-file ${NODE_PRIVATE_PATH}/kes.skey
+    fi
+
+
+    # Generate VRF
+    if [ ! -f ${NODE_PRIVATE_PATH}/vrf.vkey ]; then
+      cardano-cli node key-gen-VRF \
+        --verification-key-file ${NODE_PRIVATE_PATH}/vrf.vkey \
+        --signing-key-file ${NODE_PRIVATE_PATH}/vrf.skey
+
+      chmod 400 ${NODE_PRIVATE_PATH}/vrf.skey
+    fi
+
+    # Generate pool params
+    if [ ! -f ${NODE_HOME}/params.json ]; then
+      cardano-cli query protocol-parameters \
+          ${NODE_NETWORK_FLAG} \
+          --out-file ${NODE_HOME}/params.json
+    fi
+
+
+    # Generate file to download and run on cold machine
+    if [ ! -f /home/${NODE_USER}/step-1.sh ]; then
+      cat > /home/${NODE_USER}/step-1.sh << EOF 
+        #!/bin/bash
+
+        # Generate counter
+        cardano-cli node key-gen \\
+          --cold-verification-key-file node.vkey \\
+          --cold-signing-key-file node.skey \\
+          --operational-certificate-issue-counter node.counter
+
+        # Generate node.cert
+        cardano-cli node issue-op-cert \\
+          --kes-verification-key-file kes.vkey\\
+          --cold-signing-key-file node.skey \\
+          --operational-certificate-issue-counter node.counter \\
+          --kes-period $KES_PERIOD_START \\
+          --out-file node.cert
+
+        # Generate payment.addr
+        cardano-cli address key-gen \\
+            --verification-key-file payment.vkey \\
+            --signing-key-file payment.skey
+
+        cardano-cli stake-address key-gen \\
+            --verification-key-file stake.vkey \\
+            --signing-key-file stake.skey
+
+        cardano-cli stake-address build \\
+            --stake-verification-key-file stake.vkey \\
+            --out-file stake.addr \\
+            ${NODE_NETWORK_FLAG}
+
+        cardano-cli address build \\
+            --payment-verification-key-file payment.vkey \\
+            --stake-verification-key-file stake.vkey \\
+            --out-file payment.addr \\
+            ${NODE_NETWORK_FLAG}
+
+        cardano-cli stake-address registration-certificate \\
+            --stake-verification-key-file stake.vkey \\
+            --out-file stake.cert
+
+        echo "Now upload node.cert, payment.addr, stake.cert from cold into /home/${NODE_USER}/ on the node. Then re-run the setup."
+    EOF
+    chmod +x /home/${NODE_USER}/step-1.sh
+    fi
+
+    # Generate file for step 1 instructions
+    if [ ! -f /home/${NODE_USER}/step-1.txt ]; then
+      echo $(nextStepMessage) > /home/${NODE_USER}/step-1.txt
+    fi 
+
+    # zip whats needed to transfer to cold machine
+    if [ ! -f /home/${NODE_USER}/step-1.zip ]; then
+      zip -q -j \
+        /home/${NODE_USER}/step-1.zip \
+        ${NODE_PRIVATE_PATH}/kes.skey \
+        ${NODE_PRIVATE_PATH}/kes.vkey \
+        ${NODE_PRIVATE_PATH}/vrf.skey \
+        ${NODE_PRIVATE_PATH}/vrf.vkey \
+        /home/${NODE_USER}/step-1.sh \
+        /home/${NODE_USER}/step-1.txt
+    fi
+
+    rm -rf /home/${NODE_USER}/step-1.sh
+    rm -rf /home/${NODE_USER}/step-1.txt
+
+    # Output instructions
+    if [ ! -f /home/${NODE_USER}/node.cert ] ||
+      [ ! -f /home/${NODE_USER}/stake.cert ] ||
+      [ ! -f /home/${NODE_USER}/payment.addr ] ; then
+      
+      nextStepMessage
+
+      # Start loop waiting for files
+      RUN=true
+      while $RUN
+      do
+      if [ -f /home/${NODE_USER}/node.cert ] && [ -f /home/${NODE_USER}/stake.cert ] && [ -f /home/${NODE_USER}/payment.addr ]; then
+          RUN=false
+          echo "Found files, continuing."
+      else
+          sleep 2
+      fi
+      done
+      # End loop waiting for files
+    fi
+
+    # Clean up step 1 archive
+    rm -rf /home/${NODE_USER}/step-1.zip
+
+    # Stop the node
+    sudo systemctl stop cardano-node
+
+    # Copy files transferred from cold into their locations
+    mv /home/${NODE_USER}/node.cert ${NODE_PRIVATE_PATH}/node.cert
+    mv /home/${NODE_USER}/stake.cert ${NODE_PRIVATE_PATH}/stake.cert
+    mv /home/${NODE_USER}/payment.addr ${NODE_PRIVATE_PATH}/payment.addr
+
+    # Update config with path to keys
+    sudo rm ${NODE_SCRIPTS_PATH}/startNode.sh
+    cat > ${NODE_SCRIPTS_PATH}/startNode.sh << EOF 
+    /usr/local/bin/cardano-node run --topology ${CONFIG_TOPOLOGY} --database-path ${NODE_DB_PATH} --socket-path ${NODE_SOCKET_PATH} --host-addr 0.0.0.0 --port ${NODE_PORT} --config ${CONFIG_CONFIG} --shelley-kes-key ${NODE_PRIVATE_PATH}/kes.skey --shelley-vrf-key $NODE_PRIVATE_PATH/vrf.skey --shelley-operational-certificate ${NODE_PRIVATE_PATH}/node.cert
+    EOF
+    chmod +x ${NODE_SCRIPTS_PATH}/startNode.sh
+
+    # Start the node
+    sudo systemctl start cardano-node
+
+    echo "Initial setup complete!"
+    echo "For the next step you will need to send yourself some ADA to complete a transaction."
+    echo "Send ADA to $(cat ${NODE_PRIVATE_PATH}/payment.addr)"
+
+    # Clean up
+    rm -rf ${NODE_PRIVATE_PATH}/kes.vkey
+    rm -rf ${NODE_PRIVATE_PATH}/vrf.vkey
+
+    sed -i "s#\Register Keys|Running#Register Keys|Complete#g" /home/cardano/.nodeSetup

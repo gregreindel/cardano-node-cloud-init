@@ -1,0 +1,115 @@
+- path: ${NODE_SCRIPTS_PATH}/init/registerTopology.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    if [[ $NODE_TYPE == relay ]]; then
+    echo "cannot create block on relay node."
+    return;
+    fi
+
+    sudo systemctl stop cardano-node
+
+    RELAY_NODE_IP_1=""
+    RELAY_NODE_IP_2=""
+    RELAY_NODE_IP_3=""
+    RELAY_NODE_IP_4=""
+
+    while [[ $# -gt 0 ]]; do
+      key="$1"
+
+      case $key in
+        -ip1)
+          RELAY_NODE_IP_1="$2"
+          shift # past argument
+          shift # past value
+          ;;
+        -ip2)
+          RELAY_NODE_IP_2="$2"
+          shift # past argument
+          shift # past value
+          ;;
+        -ip3)
+          RELAY_NODE_IP_3="$2"
+          shift # past argument
+          shift # past value
+          ;;
+        -ip4)
+          RELAY_NODE_IP_4="$2"
+          shift # past argument
+          shift # past value
+          ;;
+        *)
+        # unknown option
+          shift # past argument
+          ;;
+      esac
+    done
+
+    if [ -z $RELAY_NODE_IP_1 ]; then 
+      echo "Enter relay node 1 IP address."
+      read RELAY_NODE_IP_1
+    fi
+
+    if [ -z $RELAY_NODE_IP_2 ]; then 
+      echo "Enter relay node 2 IP address. (Or enter to continue)"
+      read RELAY_NODE_IP_2
+    fi
+
+    # Validate IP
+    if [ -z $RELAY_NODE_IP_1 ]; then
+      echo "Missing primary relay node IP"
+      return
+    fi
+
+    for ELEMENT in "$RELAY_NODE_IP_1" "$RELAY_NODE_IP_2" "$RELAY_NODE_IP_3" "$RELAY_NODE_IP_4"; do
+    if [[ ! -z $ELEMENT ]]; then
+      if [[ $ELEMENT =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]
+      then
+      echo "Setting up $ELEMENT"
+      else
+        echo "$ELEMENT is not a valid IP"
+        return;
+      fi
+    fi
+    done
+    # End Validate IP 
+
+
+    # Topology
+    TOPOLOGY="
+      {
+        \"addr\": \"$RELAY_NODE_IP_1\",
+        \"port\": ${NODE_PORT},
+        \"valency\": 1
+      }"
+    for ELEMENT in "$RELAY_NODE_IP_2" "$RELAY_NODE_IP_3" "$RELAY_NODE_IP_4"; do
+      if [ ! -z $ELEMENT ]; then
+        TOPOLOGY+=",
+        {
+          \"addr\": \"$ELEMENT\",
+          \"port\": ${NODE_PORT},
+          \"valency\": 1
+        }"
+      fi
+    done
+    cat > ${CONFIG_TOPOLOGY} << EOF 
+    {
+      "Producers": [ $TOPOLOGY ]
+    }
+    EOF
+    # End Topology
+
+
+    # Firewall
+    for NODE_IP in "$RELAY_NODE_IP_1" "$RELAY_NODE_IP_2" "$RELAY_NODE_IP_3" "$RELAY_NODE_IP_4"; do
+    if [ ! -z "$NODE_IP" ]
+    then
+        sudo ufw allow from "$NODE_IP" to any port "${NODE_PORT}"
+    fi
+    done
+    # End Firewall
+
+    sudo systemctl start cardano-node
+
+    sed -i "s#\Register Pool Topology|Running#Register Pool Topology|Complete#g" /home/${NODE_USER}/.nodeSetup

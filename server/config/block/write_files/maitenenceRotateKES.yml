@@ -1,0 +1,56 @@
+- path: ${NODE_SCRIPTS_PATH}/rotateKES.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+  
+    slotNo=$(cardano-cli query tip --mainnet | jq -r '.slot')
+    slotsPerKESPeriod=$(cat ${CONFIG_SHELLY} | jq -r '.slotsPerKESPeriod')
+    kesPeriod=$((${slotNo} / ${slotsPerKESPeriod}))
+    startKesPeriod=${kesPeriod}
+
+    cardano-cli node key-gen-KES \
+        --verification-key-file /tmp/kes.vkey \
+        --signing-key-file /tmp/kes.skey
+
+
+    # Generate file to download and run on cold machine
+    if [ ! -f /home/${NODE_USER}/rotate-kes.sh ]; then
+      cat > /home/${NODE_USER}/rotate-kes.sh << EOF 
+        #!/bin/bash
+
+        cardano-cli node issue-op-cert \
+            --kes-verification-key-file kes.vkey \
+            --cold-signing-key-file node.skey \
+            --operational-certificate-issue-counter node.counter \
+            --kes-period ${startKesPeriod} \
+            --out-file node.cert
+
+        echo "Upload node.cert into node /home/${NODE_USER}"
+    EOF
+
+      zip -q -j \
+        /home/${NODE_USER}/rotate-kes.zip \
+        /home/${NODE_USER}/rotate-kes.sh \
+        /tmp/kes.skey \
+        /tmp/kes.vkey
+
+      rm -rf /home/${NODE_USER}/rotate-kes.sh
+    fi
+
+    # Start loop waiting for files
+    RUN=true
+    while $RUN
+    do
+    if [ -f /home/${NODE_USER}/node.cert ]; then
+        mv /home/${NODE_USER}/node.cert ${NODE_PRIVATE_PATH}/node.cert
+        mv /tmp/kes.skey ${NODE_PRIVATE_PATH}/kes.skey
+        mv /tmp/kes.vkey ${NODE_PRIVATE_PATH}/kes.vkey
+        rm -rf /home/${NODE_USER}/rotate-kes.zip
+        RUN=false
+    else
+        sleep 2
+    fi
+    done
+    # End loop waiting for files
+
+    sudo systemctl restart cardano-node

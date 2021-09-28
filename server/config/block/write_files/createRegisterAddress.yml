@@ -1,0 +1,161 @@
+- path: ${NODE_SCRIPTS_PATH}/init/registerAddress.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    # !! Need to make sure node is running here
+
+    outputMessageSignTransaction() {
+    cat <<EOF
+
+    The transaction to register your stake address needs to be signed. You'll need to do this on your cold machine.
+
+    1.) Download the files from /home/${NODE_USER}/step-2.zip to your cold environment.
+
+    Inside will be the following files:
+    - tx-stake-address-register.raw 
+    - step-2.sh 
+    - step-2.txt
+
+    2.) Move all the files into the directory you are generating your keys with.
+    3.) Execute 'step-2.sh', this will sign the transaction and generate one file.
+    4.) Upload the generated file 'tx-stake-address-register.signed' into /home/${NODE_USER}/
+
+    EOF
+    }
+
+    function doSubmitTransaction(){
+      # Submit
+      submitTransaction=$( cardano-cli transaction submit \
+        --tx-file /home/${NODE_USER}/tx-stake-address-register.signed \
+        ${NODE_NETWORK_FLAG} 2>&1 )
+
+        if [[ $submitTransaction == 'Transaction successfully submitted.' ]]; then
+          sed -i "s#\Register Address|Running#Register Address|Complete#g" /home/cardano/.nodeSetup
+          echo "Transaction successfully submitted."
+        else
+          # Error with transaction
+          echo "Error submitting transaction"
+          return
+          # TODO: Logging
+        fi
+
+        # Cleanup
+        rm /home/${NODE_USER}/tx-stake-address-register.signed
+        rm -rf /home/${NODE_USER}/step-2.zip
+    }
+
+    if [ ! -f ${NODE_PRIVATE_PATH}/stake.cert ]; then
+      echo "Missing stake.cert"
+      return
+    fi
+
+    if [ ! -f ${NODE_PRIVATE_PATH}/payment.addr ]; then
+      echo "Missing payment.addr"
+      return
+    fi
+
+    if [ -f /home/${NODE_USER}/tx-stake-address-register.signed ]; then
+      # Submit transaction
+      doSubmitTransaction
+      return
+    fi
+
+    STAKE_ADDRESS_DEPOSIT=$(cat ${NODE_HOME}/params.json | jq -r '.stakeAddressDeposit')
+    total_balance=$(. ${NODE_SCRIPTS_PATH}/getTxInfo.sh | jq -r '.balance')
+
+    if [ ${total_balance} -lt 2 ]; then
+      echo "No ADA. You need to send funds to your payment address to register your stake address."
+      echo "Send at least 3.50 ADA to $(cat ${NODE_PRIVATE_PATH}/payment.addr)"
+      return
+    fi
+
+    SLOT_NUMBER=$(. ${NODE_SCRIPTS_PATH}/getTxInfo.sh | jq -r '.slotNumber')
+    tx_in=$(. ${NODE_SCRIPTS_PATH}/getTxInfo.sh | jq -r '.txIn')
+    txcnt=$(. ${NODE_SCRIPTS_PATH}/getTxInfo.sh | jq -r '.txCnt')
+
+    cardano-cli transaction build-raw \
+      ${tx_in} \
+      --tx-out $(cat $NODE_PRIVATE_PATH/payment.addr)+0 \
+      --invalid-hereafter $(( $SLOT_NUMBER + 10000 )) \
+      --fee 0 \
+      --out-file tx-stake-address-register.tmp \
+      --certificate ${NODE_PRIVATE_PATH}/stake.cert
+
+
+    FEE=$(cardano-cli transaction calculate-min-fee \
+      --tx-body-file tx-stake-address-register.tmp \
+      --tx-in-count ${txcnt} \
+      --tx-out-count 1 \
+      --mainnet \
+      --witness-count 2 \
+      --byron-witness-count 0 \
+      --protocol-params-file ${NODE_HOME}/params.json | awk '{ print $1 }')
+
+    txOut=$((${total_balance}-${STAKE_ADDRESS_DEPOSIT}-${FEE}))
+
+    cardano-cli transaction build-raw \
+      ${tx_in} \
+      --tx-out $(cat ${NODE_PRIVATE_PATH}/payment.addr)+${txOut} \
+      --invalid-hereafter $(( $SLOT_NUMBER + 10000 )) \
+      --fee ${FEE} \
+      --certificate-file ${NODE_PRIVATE_PATH}/stake.cert \
+      --out-file /home/${NODE_USER}/tx-stake-address-register.raw
+
+
+    # Generate file to download and run on cold machine
+    if [ ! -f /home/${NODE_USER}/step-2.sh ]; then
+      cat > /home/${NODE_USER}/step-2.sh << EOF 
+        #!/bin/bash
+        cardano-cli transaction sign \
+          --tx-body-file tx-stake-address-register.raw \
+          --signing-key-file payment.skey \
+          --signing-key-file stake.skey \
+          ${NODE_NETWORK_FLAG} \
+          --out-file tx-stake-address-register.signed
+
+      echo "Upload tx-stake-address-register.signed into /home/${NODE_USER}/ and re-run"
+    EOF
+    chmod +x /home/${NODE_USER}/step-2.sh
+    fi
+
+    # Generate file for step 2 instructions
+    if [ ! -f /home/${NODE_USER}/step-2.txt ]; then
+      echo $(outputMessageSignTransaction) > /home/${NODE_USER}/step-2.txt
+    fi 
+
+    # zip whats needed to transfer to cold machine
+    zip -q -j \
+      /home/${NODE_USER}/step-2.zip \
+      /home/${NODE_USER}/tx-stake-address-register.raw \
+      /home/${NODE_USER}/step-2.sh \
+      /home/${NODE_USER}/step-2.txt
+
+    # Cleanup
+    rm -rf /home/${NODE_USER}/step-2.sh
+    rm -rf /home/${NODE_USER}/step-2.txt
+    rm -rf /home/${NODE_USER}/tx-stake-address-register.tmp
+    rm -rf /home/${NODE_USER}/tx-stake-address-register.raw
+
+    # Output instructions
+    if [ ! -f /home/${NODE_USER}/tx-stake-address-register.signed ]; then
+      outputMessageSignTransaction
+
+      # Start loop waiting for files
+      RUN=true
+      while $RUN
+      do
+      if [ -f /home/${NODE_USER}/tx-stake-address-register.signed ]; then
+          RUN=false
+          echo "Found files, continuing."
+      else
+          sleep 2
+      fi
+      done
+      # End loop waiting for files
+    fi
+
+    if [ -f /home/${NODE_USER}/tx-stake-address-register.signed ]; then
+      # Submit transaction
+      doSubmitTransaction
+    fi

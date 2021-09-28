@@ -1,0 +1,8 @@
+- path: ${NODE_SCRIPTS_PATH}/init/cleanup.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    rm ${NODE_PRIVATE_PATH}/deleg.cert
+    rm ${NODE_PRIVATE_PATH}/stake.cert
+    rm ${NODE_PRIVATE_PATH}/pool.cert

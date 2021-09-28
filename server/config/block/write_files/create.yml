@@ -1,0 +1,70 @@
+- path: ${NODE_SCRIPTS_PATH}/init/create.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    if [[ $(du --apparent-size -B 1 /opt/cardano-node/db/immutable/ | cut -f1) -lt 3530646460 ]]; then
+        echo "You need to sync the database before setting up the node. Make sure your db is updated and the node is synced."
+        echo "If this is the first time starting your node, then this will take some time."
+        return
+    fi
+
+    if [ ! -f /home/cardano/.nodeSetup ]; then
+    cat > /home/cardano/.nodeSetup << EOF 
+    #!/bin/bash
+    Register Keys|Not Started
+    Register Address|Not Started
+    Register Pool|Not Started
+    Register Pool Pledge|Not Started
+    Register Pool ID|Not Started
+    Register Pool Topology|Not Started
+    EOF
+    fi 
+
+    if ! grep -q 'Register Keys|Complete' /home/cardano/.nodeSetup; then
+      sed -i "s#\Register Keys|Not Started#Register Keys|Running#g" /home/cardano/.nodeSetup
+      . ${NODE_SCRIPTS_PATH}/init/registerKeys.sh
+      echo "Run cni-init to continue with setup."
+      return
+    fi
+
+    if ! grep -q 'Register Address|Complete' /home/cardano/.nodeSetup; then
+       sed -i "s#\Register Address|Not Started#Register Address|Running#g" /home/cardano/.nodeSetup
+      . ${NODE_SCRIPTS_PATH}/init/registerAddress.sh
+      echo "Run cni-init to continue with setup."
+      return
+    fi
+
+    if ! grep -q 'Register Pool|Complete' /home/cardano/.nodeSetup; then
+      sed -i "s#\Register Pool|Not Started#Register Pool|Running#g" /home/cardano/.nodeSetup
+      . ${NODE_SCRIPTS_PATH}/init/registerPool.sh
+      echo "Run cni-init to continue with setup."
+      return
+    fi
+
+    if ! grep -q 'Register Pool Pledge|Complete' /home/cardano/.nodeSetup; then
+      sed -i "s#\Register Pool Pledge|Not Started#Register Pool Pledge|Running#g" /home/cardano/.nodeSetup
+      . ${NODE_SCRIPTS_PATH}/init/registerPoolPledge.sh
+      echo "Run cni-init to continue with setup."
+      return
+    fi
+    
+    if ! grep -q 'Register Pool ID|Complete' /home/cardano/.nodeSetup; then
+      sed -i "s#\Register Pool ID|Not Started#Register Pool ID|Running#g" /home/cardano/.nodeSetup
+      . ${NODE_SCRIPTS_PATH}/init/registerPoolGetId.sh
+      echo "Run cni-init to continue with setup."
+      return
+    fi
+
+    if ! grep -q 'Register Pool Topology|Complete' /home/cardano/.nodeSetup; then
+      sed -i "s#\Register Pool Topology|Not Started#Register Pool Topology|Running#g" /home/cardano/.nodeSetup
+      . ${NODE_SCRIPTS_PATH}/init/registerTopology.sh
+      echo "Run cni-init to complete setup."
+      return
+    fi
+    
+    . ${NODE_SCRIPTS_PATH}/init/cleanup.sh
+    
+    echo "Setup Complete."
+
+

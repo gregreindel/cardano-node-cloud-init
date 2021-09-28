@@ -1,0 +1,4 @@
+- sudo systemctl daemon-reload
+- sudo systemctl restart fail2ban
+# TODO: Can't use `systemctl enable` on google cloud
+- sudo systemctl enable cardano-node

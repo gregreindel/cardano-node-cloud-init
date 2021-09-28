@@ -1,0 +1,36 @@
+- path: ${NODE_SCRIPTS_PATH}/init/create.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    if [ ! -f /home/cardano/.nodeSetup ]; then
+    cat > /home/cardano/.nodeSetup << EOF 
+    #!/bin/bash
+    Create Topology|Not Started
+    EOF
+    fi 
+
+    BLOCK_NODE_IP_1="" # Preferably a floating IP
+
+    while :; do
+      case $1 in
+        -ip1)
+          BLOCK_NODE_IP_1=$2
+        ;;
+        *)
+      break
+      esac
+      shift
+    done
+
+    if [ -z $BLOCK_NODE_IP_1 ]; then 
+      echo "Enter block node IP address."
+      read BLOCK_NODE_IP_1
+    fi
+
+
+    if ! grep -q 'Create Topology|Complete' /home/cardano/.nodeSetup; then
+      sed -i "s#\Create Topology|Not Started#Create Topology|Running#g" /home/cardano/.nodeSetup
+      . ${NODE_SCRIPTS_PATH}/init/registerTopology.sh -ip1 $BLOCK_NODE_IP_1
+      . ${NODE_SCRIPTS_PATH}/topologyUpdater.sh
+    fi

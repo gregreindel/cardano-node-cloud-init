@@ -1,0 +1,29 @@
+- path: /run/tmp/.environment.sh
+  permissions: "750"
+  content: |
+    alias start="sudo systemctl start cardano-node"
+    alias stop="sudo systemctl stop cardano-node"
+    alias status="sudo systemctl status cardano-node"
+    alias restart="sudo systemctl restart cardano-node"
+    alias logs="journalctl --unit=cardano-node --follow"
+    alias node="cd ${NODE_HOME}"
+    alias home="cd /home/${NODE_USER}"
+    alias view=". ${NODE_SCRIPTS_PATH}/liveView.sh"
+
+    export NODE_TYPE=${NODE_TYPE}
+    export NODE_NETWORK=${NODE_NETWORK}
+    export NODE_NETWORK_FLAG='${NODE_NETWORK_FLAG}'
+    export NODE_PORT=${NODE_PORT}
+    export NODE_DB_PATH=${NODE_DB_PATH}
+    export NODE_HOME=${NODE_HOME}
+    export NODE_CONFIG_PATH=${NODE_CONFIG_PATH}
+    export NODE_SOCKET_PATH=${NODE_SOCKET_PATH}
+    export NODE_PRIVATE_PATH=${NODE_PRIVATE_PATH}
+    export NODE_SCRIPTS_PATH=${NODE_SCRIPTS_PATH}
+    export NODE_VERSION=${NODE_VERSION}
+    export CARDANO_NODE_SOCKET_PATH=${CARDANO_NODE_SOCKET_PATH}
+    export CONFIG_TOPOLOGY=${CONFIG_TOPOLOGY}
+    export CONFIG_CONFIG=${CONFIG_CONFIG}
+    export CONFIG_SHELLY=${CONFIG_SHELLY}
+    export CONFIG_BYRON=${CONFIG_BYRON}
+    export CONFIG_ALONZO=${CONFIG_ALONZO}

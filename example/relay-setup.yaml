@@ -1,0 +1,218 @@
+#cloud-config
+# date: Tue Sep 28 16:36:07 CDT 2021
+# node type: relay
+# network: testnet
+# cardano-node version: 1.29.0
+
+# Instructions: 
+# Make sure the node has finished setup using the user data script
+# 1.) Create a file in the cardano user home directory (/home/cardano/) named relay-setup.yaml with the contents of this.
+# 2.) Run the following commands:
+#   sudo cloud-init --file ~/relay-setup.yaml single --name write_files --frequency once
+#   sudo . /opt/cardano-node/scripts/init/manualSetupHelper.sh
+
+write_files:
+- path: /run/tmp/.environment-relay.sh
+  permissions: "750"
+  content: |
+    alias cni-init=". /opt/cardano-node/scripts/init/create.sh"
+- path: /opt/cardano-node/scripts/init/create.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    if [ ! -f /home/cardano/.nodeSetup ]; then
+    cat > /home/cardano/.nodeSetup << EOF 
+    #!/bin/bash
+    Create Topology|Not Started
+    EOF
+    fi 
+
+    BLOCK_NODE_IP_1="" # Preferably a floating IP
+
+    while :; do
+      case $1 in
+        -ip1)
+          BLOCK_NODE_IP_1=$2
+        ;;
+        *)
+      break
+      esac
+      shift
+    done
+
+    if [ -z $BLOCK_NODE_IP_1 ]; then 
+      echo "Enter block node IP address."
+      read BLOCK_NODE_IP_1
+    fi
+
+
+    if ! grep -q 'Create Topology|Complete' /home/cardano/.nodeSetup; then
+      sed -i "s#\Create Topology|Not Started#Create Topology|Running#g" /home/cardano/.nodeSetup
+      . /opt/cardano-node/scripts/init/registerTopology.sh -ip1 $BLOCK_NODE_IP_1
+      . /opt/cardano-node/scripts/topologyUpdater.sh
+    fi
+- path: /opt/cardano-node/scripts/init/registerTopology.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    if [[ $NODE_TYPE == block ]]; then
+    echo "Cannot create relay on block node."
+    return;
+    fi
+
+    BLOCK_NODE_IP_1="" # Preferably a floating IP
+
+    while :; do
+      case $1 in
+        -ip1)
+          BLOCK_NODE_IP_1=$2
+        ;;
+        *)
+      break
+      esac
+      shift
+    done
+
+
+    if [ -z $BLOCK_NODE_IP_1 ]; then 
+      echo "Enter block node IP address."
+      read BLOCK_NODE_IP_1
+    fi
+
+    # for ELEMENT in "$BLOCK_NODE_IP_1"; do
+    if [ -z $BLOCK_NODE_IP_1 ];
+    then
+    echo ""
+    else
+      if [[ $BLOCK_NODE_IP_1 =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]];
+      then 
+      echo ""
+      else
+        echo "$BLOCK_NODE_IP_1 is not a valid ip"
+        return;
+      fi
+    fi
+    # done
+
+    DEFAULT_IOHK_RELAY="relays-new.cardano-testnet.iohk.io"
+
+    [[ "testnet" = "mainnet" ]] && DEFAULT_IOHK_RELAY="relays-new.cardano-testnet.iohk.io" || DEFAULT_IOHK_RELAY="relays-new.cardano-testnet.iohkdev.io"
+
+
+    if [ -z $BLOCK_NODE_IP_1 ]; then
+    echo "No block node IP passed, using defaults"
+    cat > $CONFIG_TOPOLOGY << EOF 
+    {
+        "Producers": [
+          {
+            "addr": "$DEFAULT_IOHK_RELAY",
+            "port": 3001,
+            "valency": 2
+          }
+        ]
+      }
+    EOF
+    else
+    echo "Block node IP passed, $BLOCK_NODE_IP_1"
+    cat > $CONFIG_TOPOLOGY << EOF 
+    {
+        "Producers": [
+          {
+            "addr": "$BLOCK_NODE_IP_1",
+            "port": 6000,
+            "valency": 1
+          },
+          {
+            "addr": "$DEFAULT_IOHK_RELAY",
+            "port": 3001,
+            "valency": 2
+          }
+        ]
+      }
+    EOF
+    fi
+
+    # Write the topology pull script
+    cat > /opt/cardano-node/topologyPull.sh << EOF
+    #!/bin/bash
+    customPeers="${DEFAULT_IOHK_RELAY}:3001:2"
+    if [ -z $BLOCK_NODE_IP_1 ]; then
+    customPeers="${BLOCK_NODE_IP_1}:\6000:1|${DEFAULT_IOHK_RELAY}:3001:2"
+    fi 
+
+    pullTopologyResponse=$(curl -s /opt/cardano-node/config/testnet-topology.json "https://api.clio.one/htopology/v1/fetch/?max=20&customPeers=\${customPeers}" | jq -r '.resultcode')
+    if [[ $pullTopologyResponse -eq 201 ]]; then
+    pullTopologyProducers=$(curl -s /opt/cardano-node/config/testnet-topology.json "https://api.clio.one/htopology/v1/fetch/?max=20&customPeers=\${customPeers}" | jq -r '.Producers')
+    echo "{
+      \"Producers\": $pullTopologyProducers
+    }" > $CONFIG_TOPOLOGY
+    EOF
+
+
+    # Apply firewall settings
+    sudo iptables -I INPUT -p tcp -m tcp --dport 6000 --tcp-flags FIN,SYN,RST,ACK SYN -m connlimit --connlimit-above 5 --connlimit-mask 32 --connlimit-saddr -j REJECT --reject-with tcp-reset
+    sudo ufw allow from "$BLOCK_NODE_IP_1" to any port "6000"
+
+    # Complete Step
+    sed -i "s#\Create Topology|Running#Create Topology|Complete#g" /home/cardano/.nodeSetup
+- path: /opt/cardano-node/scripts/init/manualSetupHelper.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    # This is used when splitting user data and setup scripts
+    # runcmd only runs on boot, so we need another way to run those commands
+    
+    if [ ! -f /run/tmp/.environment-relay.sh ]; then
+    sudo mv /run/tmp/.environment-relay.sh /home/cardano/.environment-relay.sh
+    fi
+
+    if [ ! -f /home/cardano/.environment-relay.sh ]; then
+    sudo chown cardano:cardano /home/cardano/.environment-relay.sh
+    echo "source .environment-relay.sh" >> /home/cardano/.bashrc
+    fi
+
+    sudo chown cardano:cardano /opt/cardano-node -R
+    . ~/.bashrc
+
+    sed -i /opt/cardano-node/config/testnet-config.json -e "s/TraceMempool\": true/TraceMempool\": false/g"
+
+    (crontab -l -u cardano 2>/dev/null; echo "33 * * * * /opt/cardano-node/scripts/topologyUpdater.sh") | crontab -u cardano -
+- path: /opt/cardano-node/scripts/topologyUpdater.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+    # shellcheck disable=SC2086,SC2034
+
+    CNODE_VALENCY=1   # optional for multi-IP hostnames
+    NWMAGIC=$(jq -r .networkMagic < /opt/cardano-node/config/testnet-shelley-genesis.json)
+
+    export CARDANO_NODE_SOCKET_PATH=/opt/cardano-node/db/socket
+    blockNo=$(/usr/local/bin/cardano-cli query tip --testnet-magic 1097911063 | jq -r .block )
+    # echo "blockno: "$blockNo
+    # Note:
+    # if you run your node in IPv4/IPv6 dual stack network configuration and want announced the
+    # IPv4 address only please add the -4 parameter to the curl command below  (curl -4 -s ...)
+    if [ "" != "CHANGE ME" ]; then
+      T_HOSTNAME="&hostname="
+    else
+      T_HOSTNAME=''
+    fi
+
+    if [ ! -d /opt/cardano-node/log ]; then
+      mkdir -p /opt/cardano-node/log;
+      sudo chown cardano:cardano /opt/cardano-node/log
+    fi
+
+    curl -s "https://api.clio.one/htopology/v1/?port=6000&blockNo=${blockNo}&valency=${CNODE_VALENCY}&magic=${NWMAGIC}${T_HOSTNAME}" | tee -a /opt/cardano-node/log/topologyUpdaterLatest.json
+
+runcmd:
+- sudo mv /run/tmp/.environment-relay.sh /home/cardano/.environment-relay.sh
+- sudo chown cardano:cardano /home/cardano/.environment-relay.sh
+- echo "source .environment-relay.sh" >> /home/cardano/.bashrc
+- sudo chown cardano:cardano /opt/cardano-node -R
+
+- (crontab -l -u cardano 2>/dev/null; echo "33 * * * * /opt/cardano-node/scripts/topologyUpdater.sh") | crontab -u cardano -
+- sed -i /opt/cardano-node/config/testnet-config.json -e "s/TraceMempool\":\ true/TraceMempool\":\ false/g"

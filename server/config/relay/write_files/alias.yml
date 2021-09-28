@@ -1,0 +1,4 @@
+- path: /run/tmp/.environment-relay.sh
+  permissions: "750"
+  content: |
+    alias cni-init=". ${NODE_SCRIPTS_PATH}/init/create.sh"
