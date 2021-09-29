@@ -30,5 +30,12 @@ packages:
 power_state:
   mode: reboot
   condition: True
-
 "
+
+if [[ "${NODE_SWAP_SIZE}" -gt 0 ]]; then 
+echo "
+swap:
+  filename: /swapfile
+  size: ${NODE_SWAP_SIZE}
+"
+fi 
