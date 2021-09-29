@@ -1,0 +1,41 @@
+- path: ${NODE_SCRIPTS_PATH}/modifyTopology.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    echo "Add or remove relay IP?"
+    read addOrRemove
+
+    # Adding a relay IP
+    if [ $addOrRemove == "add" ]; then
+    echo "Enter IP to add:"
+    read ip
+    if [[ $(cat ${CONFIG_TOPOLOGY} | jq '.Producers | map(select(.addr == "'${ip}'"))  | length' ) -gt 0 ]]; then
+    echo "IP ${ip} already exists! Topology not modified."
+    else
+    addedResult=$(cat ${CONFIG_TOPOLOGY} | jq '.Producers += [{"addr": "'${ip}'", "port": "6000", "valency": "1"}]')
+    cat > ${CONFIG_TOPOLOGY} << EOF 
+    $addedResult
+    EOF
+    fi
+    return
+    fi
+
+    # Removing a relay IP
+    if [ $addOrRemove == "remove" ]; then
+    echo "Enter IP to remove:"
+    read ip
+    if [[ $(cat ${CONFIG_TOPOLOGY} | jq '.Producers | map(select(.addr == "'${ip}'"))  | length' ) -gt 0 ]]; then
+    removedResult=$(cat ${CONFIG_TOPOLOGY} |  jq '.Producers | map(select(.addr != "'${ip}'"))')
+    cat > ${CONFIG_TOPOLOGY} << EOF 
+    {
+        "Producers": $removedResult
+    }
+    EOF
+    else
+    echo "IP ${ip} does not exist! Topology not modified."
+    fi
+    return
+    fi
+
+    sudo systemctl restart cardano-node
