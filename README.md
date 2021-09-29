@@ -10,20 +10,20 @@ Web UI - https://app.cardanocloudinit.com/
 # Goal 
 The long-term goal of this project is to fully automate the deployment of a Cardano stake pool. This will enable highly-available systems, making the node servers disposable -  allowing you to quickly and automatically re-deploy parts or all of your pool. 
 
-Once complete, you will be able to:
+Once complete, users will be able to:
 - Deploy a pool to any supported cloud providers via API with no configuration needed.
 - Support a self-healing infrastructure.
 - Support multi-provider failover.
-- UI for managing pool infrastructure
+- Have a UI for managing pool infrastructure.
 
-Another goal of this project if to make it easier for new stake pool operators to get their first pool online.
+Another goal of this project ia to make it easier for new stake pool operators to get their first pool online.
 
 ## To Do - coming soon
-- Allow passing in block & relay IP's into user data, to help with re-deploying a pool that was already setup, and you have dedicated/floating IP's.
-- Allow passing in other settings into config which will make for less questions while performing the node configuration 
-- Add utility to fetch db copy from volume
-- UI for managing pool infrastructure
-- Look into how to make work with Google Cloud (they don't use `systemctl enable`), and any other provider-specific enhancements.
+- Allow passing in block & relay IP's into user data to help with re-deploying a pool that was already setup.
+- Allow passing other settings into config which will make for less questions during node configuration.
+- Add utility to fetch db copy from volume.
+- UI for managing pool infrastructure.
+- Look into platform compatibility with Google Cloud (they don't use `systemctl enable`) and any other provider-specific enhancements.
 
 ----------------
 
@@ -117,17 +117,17 @@ Relay Node Setup
 Note: It's recommended to use Ubuntu 20.04 x64.
 
 **Step 1**  
-- Take the file contents of the file named "User Data" and input that when creating your server.
+- Take the contents of the file named "User Data" and input into the user data section when creating your server.
 
 **Step 2**  
 - Allow the instance to boot. Once it does, it will begin running the Cloud-init configuration.
-- You can log into your server by running the following command:  
+- Login to your server by running the following command:  
 `ssh cardano@the-server-ip-address -p the-port-you-chose`
-- Once you connect, run this command to watch the Cloud-init logs:  
+- Once connected, run this command to watch the Cloud-init process in the logs:  
 `sudo tail -f /var/log/cloud-init-output.log`
-- Wait until it says "Cloud-init v. xxxx-ubuntu1~20.04.2 finished..." at the bottom of the log file, and/or the server reboots.
+- Wait until it says "Cloud-init v. xxxx-ubuntu1~20.04.2 finished..." at the bottom of the log file and/or the server reboots.
 
-Once the Cloud-init log says "finished" at the bottom, the installation is complete. It should take no longer than 5 minutes.
+Once the Cloud-init log says "Cloud-init v. xxxx-ubuntu1~20.04.2 finished..." at the bottom, the installation is complete. It should take no longer than 5 minutes.
 
 **Step 3**  
 - Verify the installation by running the following command: `logs`
@@ -136,7 +136,7 @@ Once the Cloud-init log says "finished" at the bottom, the installation is compl
 ----------------
 
 # Known Issues & Limitations 
-- Might not work with Google Cloud - does not use systemctl enable.
+- Possible compatibility Google Cloud - does not use `systemctl enable`.
 
 ----------------
 
