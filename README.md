@@ -1,35 +1,34 @@
 # Cardano Cloud-init Generator
 Generate Cloud-init YAML files that can be used for installing and setting up Cardano stake pool node servers.
 
-Visit here to generate via web - https://app.cardanocloudinit.com/
+Web UI - https://app.cardanocloudinit.com/
 
 **Note: This is in beta.**
 
 ----------------
 
 # Goal 
-The goal of this project is to fully automate the deployment of a Cardano stake pool. This will enable highly-available systems, allowing you to quickly and automatically re-deploy parts or all of your pool. The node servers should be disposable, as long as you have predictable IP's and an easy+safe way to pull the 3 required certificate/keys for the block-producers. 
+The long-term goal of this project is to fully automate the deployment of a Cardano stake pool. This will enable highly-available systems, making the node servers disposable -  allowing you to quickly and automatically re-deploy parts or all of your pool. 
 
-Enabling you to:
+Once complete, you will be able to:
 - Deploy a pool to any supported cloud providers via API with no configuration needed.
 - Support a self-healing infrastructure.
 - Support multi-provider failover.
 - UI for managing pool infrastructure
 
-This should also help make it quite a bit easier for new stake pool operators to get their first pool on testnet faster.
-
+Another goal of this project if to make it easier for new stake pool operators to get their first pool online.
 
 ## To Do - coming soon
 - Allow passing in block & relay IP's into user data, to help with re-deploying a pool that was already setup, and you have dedicated/floating IP's.
 - Allow passing in other settings into config which will make for less questions while performing the node configuration 
 - Add utility to fetch db copy from volume
 - UI for managing pool infrastructure
-- Look into how to make work with Google Cloud (they don't use `systemctl enable`)
+- Look into how to make work with Google Cloud (they don't use `systemctl enable`), and any other provider-specific enhancements.
 
 ----------------
 
 # Usage
-Generate Cloud-init files. 
+Generate Cloud-init YAML files. 
 
 
 ```
