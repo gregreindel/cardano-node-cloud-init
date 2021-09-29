@@ -13,7 +13,8 @@ VERSION="1.29.0"
 SSH_KEY=""
 SSH_PORT="22"
 BUNDLE_CONFIG="0"
-NODE_SWAP_SIZE="0"
+BLOCK_NODE_SWAP_SIZE="0"
+RELAY_NODE_SWAP_SIZE="0"
 
 while [[ $# -gt 0 ]]; do
   key="$1"
@@ -47,11 +48,11 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --bnswap)
-      NODE_SWAP_SIZE="$2"
+      BLOCK_NODE_SWAP_SIZE="$2"
       shift
       ;;
     --rnswap)
-      NODE_SWAP_SIZE="$2"
+      RELAY_NODE_SWAP_SIZE="$2"
       shift
       ;;
     *) # unknown option
@@ -164,7 +165,8 @@ for f in `ls -1v $script_dir/out/${BUILD_ID}`; do
   sed -i '' "s#\${CONFIG_BYRON}#${CONFIG_BYRON}#g" $script_dir/out/$BUILD_ID/$f
   sed -i '' "s#\${CONFIG_ALONZO}#${CONFIG_ALONZO}#g" $script_dir/out/$BUILD_ID/$f
 
-  sed -i '' "s#\${NODE_SWAP_SIZE}#${NODE_SWAP_SIZE}#g" $script_dir/out/$BUILD_ID/$f
+  sed -i '' "s#\${BLOCK_NODE_SWAP_SIZE}#${BLOCK_NODE_SWAP_SIZE}#g" $script_dir/out/$BUILD_ID/$f
+  sed -i '' "s#\${RELAY_NODE_SWAP_SIZE}#${RELAY_NODE_SWAP_SIZE}#g" $script_dir/out/$BUILD_ID/$f
 done
 }
 

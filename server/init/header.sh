@@ -9,6 +9,12 @@ if [[ ! -z $NODE_HOSTNAME ]]; then
 echo "# hostname: ${NODE_HOSTNAME}"
 fi 
 
+if [ ${NODE_TYPE} == "block" ]; then 
+NODE_SWAP_SIZE=${BLOCK_NODE_SWAP_SIZE}
+else 
+NODE_SWAP_SIZE=${RELAY_NODE_SWAP_SIZE}
+fi 
+
 echo "
 # Instructions: 
 # 1.) Input this file into the user data field when creating the ${NODE_TYPE} server

@@ -23,7 +23,7 @@ Another goal of this project ia to make it easier for new stake pool operators t
 - Allow passing other settings into config which will make for less questions during node configuration.
 - Add utility to fetch db copy from volume.
 - UI for managing pool infrastructure.
-- Look into platform compatibility with Google Cloud (they don't use `systemctl enable`) and any other provider-specific enhancements.
+- Look into platform compatibility with Google Cloud and any other provider-specific enhancements.
 
 ----------------
 
@@ -43,6 +43,8 @@ Generate Cloud-init YAML files.
 --ssh       SSH key. Required so you can connect to the server.  
 --ssh-p     SSH port. Defaults to 22.  
 -b          Whether or not to bundle the config/setup scripts with the basic install user data for the output.  
+-bnswap     Number of bytes for block node swap file. Defaults to 0, which wil disable the swap file.
+-rnswap     Number of bytes for relay node swap file. Defaults to 0, which wil disable the swap file.
 ```
 Outputs to /out/$id/file-name.yaml
 
@@ -136,7 +138,7 @@ Once the Cloud-init log says "Cloud-init v. xxxx-ubuntu1~20.04.2 finished..." at
 ----------------
 
 # Known Issues & Limitations 
-- Possible compatibility Google Cloud - does not use `systemctl enable`.
+- Possible compatibility Google Cloud - does not use `systemctl enable`, can't use `swap`.
 
 ----------------
 
