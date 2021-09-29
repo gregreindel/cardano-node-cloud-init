@@ -37,12 +37,12 @@ Generate Cloud-init YAML files.
 
 
 ```
-*--id* - Some unique id. You can use uuidgen if available. Or just pass some string.  
-*--ver* - Cardano-node version. Defaults to latest (1.29.0).  
-*--network* - Whether using testnet or mainnet. Required.  
-*--ssh* - SSH key. Required so you can connect to the server.  
-*--ssh-p* - SSH port. Defaults to 22.  
-*-b* - Whether or not to bundle the config/setup scripts with the basic install user data for the output.  
+--id        Some unique id. You can use uuidgen if available. Or just pass some string.  
+--ver       Cardano-node version. Defaults to latest (1.29.0).  
+--network   Whether using testnet or mainnet. Required.  
+--ssh       SSH key. Required so you can connect to the server.  
+--ssh-p     SSH port. Defaults to 22.  
+-b          Whether or not to bundle the config/setup scripts with the basic install user data for the output.  
 ```
 Outputs to /out/$id/file-name.yaml
 
