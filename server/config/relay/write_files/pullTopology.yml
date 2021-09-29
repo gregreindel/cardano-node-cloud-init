@@ -1,0 +1,39 @@
+- path: ${NODE_SCRIPTS_PATH}/topologyPull.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    BLOCK_NODE_IP_1="" # Preferably a floating IP
+
+    while :; do
+      case $1 in
+        -ip1)
+          BLOCK_NODE_IP_1=$2
+        ;;
+        *)
+      break
+      esac
+      shift
+    done
+
+    if [ -z $BLOCK_NODE_IP_1 ]; then 
+      echo "Enter block node IP address."
+      read BLOCK_NODE_IP_1
+    fi
+
+    [[ "${NODE_NETWORK}" = "mainnet" ]] && DEFAULT_IOHK_RELAY="relays-new.cardano-mainnet.iohk.io" || DEFAULT_IOHK_RELAY="relays-new.cardano-testnet.iohkdev.io"
+
+    customPeers="${DEFAULT_IOHK_RELAY}:3001:2"
+
+    if [ -z $BLOCK_NODE_IP_1 ]; then
+      customPeers="${BLOCK_NODE_IP_1}:\${NODE_PORT}:1|${DEFAULT_IOHK_RELAY}:3001:2"
+    fi 
+
+    pullTopologyResponse="$(curl -s ${CONFIG_TOPOLOGY} "https://api.clio.one/htopology/v1/fetch/?max=20&customPeers=\${customPeers}" | jq -r '.resultcode')"
+    
+    if [[ "$pullTopologyResponse" -eq 201 ]]; then
+      pullTopologyProducers="$(curl -s ${CONFIG_TOPOLOGY} "https://api.clio.one/htopology/v1/fetch/?max=20&customPeers=\${customPeers}" | jq -r '.Producers')"
+      echo "{
+        \"Producers\": "$pullTopologyProducers"
+      }" > $CONFIG_TOPOLOGY
+    fi

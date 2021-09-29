@@ -43,7 +43,6 @@
     # done
 
     DEFAULT_IOHK_RELAY="relays-new.cardano-${NODE_NETWORK}.iohk.io"
-
     [[ "${NODE_NETWORK}" = "mainnet" ]] && DEFAULT_IOHK_RELAY="relays-new.cardano-${NODE_NETWORK}.iohk.io" || DEFAULT_IOHK_RELAY="relays-new.cardano-${NODE_NETWORK}.iohkdev.io"
 
 
@@ -80,22 +79,7 @@
     EOF
     fi
 
-    # Write the topology pull script
-    cat > ${NODE_SCRIPTS_PATH}/topologyPull.sh << EOF
-    #!/bin/bash
-    customPeers="${DEFAULT_IOHK_RELAY}:3001:2"
-    if [ -z $BLOCK_NODE_IP_1 ]; then
-    customPeers="${BLOCK_NODE_IP_1}:\${NODE_PORT}:1|${DEFAULT_IOHK_RELAY}:3001:2"
-    fi 
-
-    pullTopologyResponse=$(curl -s ${CONFIG_TOPOLOGY} "https://api.clio.one/htopology/v1/fetch/?max=20&customPeers=\${customPeers}" | jq -r '.resultcode')
-    if [[ $pullTopologyResponse -eq 201 ]]; then
-    pullTopologyProducers=$(curl -s ${CONFIG_TOPOLOGY} "https://api.clio.one/htopology/v1/fetch/?max=20&customPeers=\${customPeers}" | jq -r '.Producers')
-    echo "{
-      \"Producers\": $pullTopologyProducers
-    }" > $CONFIG_TOPOLOGY
-    EOF
-
+    # Should write the block node ip to config here
 
     # Apply firewall settings
     sudo iptables -I INPUT -p tcp -m tcp --dport ${NODE_PORT} --tcp-flags FIN,SYN,RST,ACK SYN -m connlimit --connlimit-above 5 --connlimit-mask 32 --connlimit-saddr -j REJECT --reject-with tcp-reset

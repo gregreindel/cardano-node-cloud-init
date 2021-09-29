@@ -13,7 +13,8 @@
     if [[ $(cat ${CONFIG_TOPOLOGY} | jq '.Producers | map(select(.addr == "'${ip}'"))  | length' ) -gt 0 ]]; then
     echo "IP ${ip} already exists! Topology not modified."
     else
-    addedResult=$(cat ${CONFIG_TOPOLOGY} | jq '.Producers += [{"addr": "'${ip}'", "port": "6000", "valency": "1"}]')
+    sudo ufw allow from "$ip" to any port "${NODE_PORT}"
+    addedResult=$(cat ${CONFIG_TOPOLOGY} | jq '.Producers += [{"addr": "'${ip}'", "port": ${NODE_PORT}, "valency": 1}]')
     cat > ${CONFIG_TOPOLOGY} << EOF 
     $addedResult
     EOF
@@ -26,6 +27,7 @@
     echo "Enter IP to remove:"
     read ip
     if [[ $(cat ${CONFIG_TOPOLOGY} | jq '.Producers | map(select(.addr == "'${ip}'"))  | length' ) -gt 0 ]]; then
+    sudo ufw delete from "$ip" to any port "${NODE_PORT}"
     removedResult=$(cat ${CONFIG_TOPOLOGY} |  jq '.Producers | map(select(.addr != "'${ip}'"))')
     cat > ${CONFIG_TOPOLOGY} << EOF 
     {
