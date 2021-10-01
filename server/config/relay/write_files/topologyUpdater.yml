@@ -4,15 +4,12 @@
     #!/bin/bash
     # shellcheck disable=SC2086,SC2034
 
-    CNODE_VALENCY=1   # optional for multi-IP hostnames
+    CNODE_VALENCY=$(jq  '.relayIPs | length' < ${NODE_SCRIPTS_PATH}/.config.json) # for multi-IP hostnames
     NWMAGIC=$(jq -r .networkMagic < ${CONFIG_SHELLY})
 
     export CARDANO_NODE_SOCKET_PATH=${CARDANO_NODE_SOCKET_PATH}
     blockNo=$(/usr/local/bin/cardano-cli query tip ${NODE_NETWORK_FLAG} | jq -r .block )
-    # echo "blockno: "$blockNo
-    # Note:
-    # if you run your node in IPv4/IPv6 dual stack network configuration and want announced the
-    # IPv4 address only please add the -4 parameter to the curl command below  (curl -4 -s ...)
+
     if [ "${NODE_HOSTNAME}" != "CHANGE ME" ]; then
       T_HOSTNAME="&hostname=${NODE_HOSTNAME}"
     else

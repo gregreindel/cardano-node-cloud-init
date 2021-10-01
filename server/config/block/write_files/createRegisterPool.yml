@@ -141,6 +141,7 @@
     echo "Enter pool relay hostname. "
     read POOL_RELAY_DOMAIN
 
+    # @TODO: Save this? ^
 
     # Generate file to download and run on cold machine
     if [ ! -f /home/${NODE_USER}/step-3.sh ]; then

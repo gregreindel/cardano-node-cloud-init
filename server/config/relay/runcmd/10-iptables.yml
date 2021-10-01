@@ -1,0 +1,1 @@
+- sudo iptables -I INPUT -p tcp -m tcp --dport ${NODE_PORT} --tcp-flags FIN,SYN,RST,ACK SYN -m connlimit --connlimit-above 5 --connlimit-mask 32 --connlimit-saddr -j REJECT --reject-with tcp-reset

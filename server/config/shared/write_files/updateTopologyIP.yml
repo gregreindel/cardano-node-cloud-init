@@ -1,15 +1,42 @@
-- path: ${NODE_SCRIPTS_PATH}/modifyTopology.sh
+- path: ${NODE_SCRIPTS_PATH}/updateTopologyIP.sh
   permissions: "550"
   content: |
     #!/bin/bash
 
-    echo "Add or remove block IP?"
-    read addOrRemove
+    addOrRemove="$1"
+    ip="$2"
+    doRestart=""
+
+    while :; do
+      case $1 in
+        --restart)
+          doRestart="yes"
+        ;;
+        *)
+      break
+      esac
+      shift
+    done
+
+    if [ -z $addOrRemove ]; then 
+      echo "add or remove IP from topology?"
+      read addOrRemove
+    fi 
+
+    if [ -z "$ip" ]; then 
+      echo "Enter IP to $addOrRemove"
+      read ip
+    fi 
+
+    if [[ ! $ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+      echo "Invalid IP"
+      return
+    fi 
+
 
     # Adding a block IP
     if [ $addOrRemove == "add" ]; then
-    echo "Enter IP to add:"
-    read ip
+
     if [[ $(cat ${CONFIG_TOPOLOGY} | jq '.Producers | map(select(.addr == "'${ip}'"))  | length' ) -gt 0 ]]; then
     echo "IP ${ip} already exists! Topology not modified."
     else
@@ -24,8 +51,7 @@
 
     # Removing a block IP
     if [ $addOrRemove == "remove" ]; then
-    echo "Enter IP to remove:"
-    read ip
+
     if [[ $(cat ${CONFIG_TOPOLOGY} | jq '.Producers | map(select(.addr == "'${ip}'"))  | length' ) -gt 0 ]]; then
     sudo ufw delete from "$ip" to any port "${NODE_PORT}"
     removedResult=$(cat ${CONFIG_TOPOLOGY} |  jq '.Producers | map(select(.addr != "'${ip}'"))')
@@ -40,4 +66,13 @@
     return
     fi
 
-    sudo systemctl restart cardano-node
+    if [ -z $doRestart ]; then 
+      echo "Restart required. Do it now? y/n"
+      read restartNow
+      if [ $restartNow == "y" ]; then 
+        doRestart="yes"
+      fi 
+    fi
+    if [ $doRestart == "yes" ]; then 
+      sudo systemctl restart cardano-node
+    fi

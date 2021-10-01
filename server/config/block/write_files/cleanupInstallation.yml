@@ -2,7 +2,12 @@
   permissions: "550"
   content: |
     #!/bin/bash
-
-    rm ${NODE_PRIVATE_PATH}/deleg.cert
-    rm ${NODE_PRIVATE_PATH}/stake.cert
-    rm ${NODE_PRIVATE_PATH}/pool.cert
+    if [ -f ${NODE_PRIVATE_PATH}/deleg.cert ]; then
+      rm ${NODE_PRIVATE_PATH}/deleg.cert
+    fi
+    if [ -f ${NODE_PRIVATE_PATH}/stake.cert ]; then
+      rm ${NODE_PRIVATE_PATH}/stake.cert
+    fi
+    if [ -f ${NODE_PRIVATE_PATH}/pool.cert ]; then
+      rm ${NODE_PRIVATE_PATH}/pool.cert
+    fi

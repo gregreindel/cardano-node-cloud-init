@@ -18,6 +18,7 @@
 
     verifyPoolId(){
       cardano-cli query stake-snapshot --stake-pool-id $(cat /home/${NODE_USER}/pid.txt) ${NODE_NETWORK_FLAG}
+      mv /home/${NODE_USER}/pid.txt ${NODE_PRIVATE_PATH}/pid.txt
       sed -i "s#\Register Pool ID|Running#Register Pool ID|Complete#g" /home/cardano/.nodeSetup
     }
 

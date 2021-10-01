@@ -2,4 +2,4 @@
   permissions: "750"
   content: |
     alias cni-init=". ${NODE_SCRIPTS_PATH}/init/create.sh"
-    alias cni-modify-topology=". ${NODE_SCRIPTS_PATH}/modifyTopology.sh"
+    alias cni-modify-topology=". ${NODE_SCRIPTS_PATH}/updateTopologyIP.sh"

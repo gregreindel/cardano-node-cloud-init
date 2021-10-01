@@ -1,0 +1,45 @@
+- path: ${NODE_SCRIPTS_PATH}/updateConfigIP.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    addOrRemove="$1"
+    ip="$2"
+
+    if [ -z $addOrRemove ]; then 
+      echo "add or remove IP from config?"
+      read addOrRemove
+    fi 
+
+    if [ -z "$ip" ]; then 
+      echo "Enter IP to $addOrRemove"
+      read ip
+    fi 
+
+    if [ -z "$ip" ]; then 
+      return
+    fi 
+
+    if [[ ! $ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+      echo "Invalid IP"
+      return
+    fi 
+
+
+    # Adding a block IP
+    if [ $addOrRemove == "add" ]; then
+      ipExists=$(cat ${NODE_HOME}/.config.json | jq '.blockIPs | contains( ["'$ip'"])')
+      if ! $ipExists; then
+          newValue=$(cat ${NODE_HOME}/.config.json | jq '.blockIPs += ["'$ip'"]')
+          echo $newValue > ${NODE_HOME}/.config.json
+      fi
+    fi
+
+    # Removing a block IP
+    if [ $addOrRemove == "remove" ]; then
+      ipExists=$(cat ${NODE_HOME}/.config.json | jq '.blockIPs | contains( ["'$ip'"])')
+      if $ipExists; then
+          newValue=$(cat ${NODE_HOME}/.config.json | jq '.blockIPs -= ["'$ip'"]')
+          echo $newValue > ${NODE_HOME}/.config.json
+      fi
+    fi

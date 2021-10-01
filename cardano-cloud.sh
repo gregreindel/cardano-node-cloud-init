@@ -5,26 +5,32 @@
 cardanoCloudInitGeneratorVersion="1.0.0"
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
 
-BUILD_ID=$(uuidgen)
+BUILD_ID="0"
 
 HOSTNAME=""
 NETWORK="testnet"
 VERSION="1.29.0"
 SSH_KEY=""
 SSH_PORT="22"
-BUNDLE_CONFIG="0"
+BUNDLE_CONFIG="1"
+
 BLOCK_NODE_SWAP_SIZE="0"
+BLOCK_NODE_IP_1=""
+BLOCK_NODE_IP_2=""
+
 RELAY_NODE_SWAP_SIZE="0"
+RELAY_NODE_IP_1=""
+RELAY_NODE_IP_2=""
+RELAY_NODE_IP_3=""
+RELAY_NODE_IP_4=""
+
+AUTO_INIT="no"
 
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
     -id)
       BUILD_ID="$2"
-      shift
-      ;;
-    -h|--hostname)
-      HOSTNAME="$2"
       shift
       ;;
     -n|--network)
@@ -43,16 +49,44 @@ while [[ $# -gt 0 ]]; do
       # VERSION="$2"
       shift
       ;;
-    -b|--bundle)
-      BUNDLE_CONFIG="1"
+    --bundle)
+      BUNDLE_CONFIG="0"
       shift
       ;;
     --bnswap)
       BLOCK_NODE_SWAP_SIZE="$2"
       shift
       ;;
+    --bnip1)
+      BLOCK_NODE_IP_1="$2"
+      shift
+      ;;
+    --bnip2)
+      BLOCK_NODE_IP_1="$2"
+      shift
+      ;;
     --rnswap)
       RELAY_NODE_SWAP_SIZE="$2"
+      shift
+      ;;
+    --rnip1)
+      BLOCK_NODE_IP_1="$2"
+      shift
+      ;;
+    --rnip2)
+      BLOCK_NODE_IP_2="$2"
+      shift
+      ;;
+    --rnip3)
+      BLOCK_NODE_IP_3="$2"
+      shift
+      ;;
+    --rnip4)
+      BLOCK_NODE_IP_4="$2"
+      shift
+      ;;
+    --auto-init)
+      AUTO_INIT="yes"
       shift
       ;;
     *) # unknown option
@@ -102,9 +136,13 @@ else
 fi
 
 mkdir -p "$script_dir/out/${BUILD_ID}"
-echo "$(. "$script_dir/server/init/header.sh")" > "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-user-data.yaml"
 
 CONFIG_SCRIPT_PATH="$script_dir/out/${BUILD_ID}/${NODE_TYPE}-user-data.yaml"
+
+# Write the header to the main user data file
+echo "$(. "$script_dir/server/init/header.sh")" > "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-user-data.yaml"
+
+# If not bundling, that means were generating another file. write the header for that
 if [ "$BUNDLE_CONFIG" = "1" ]; then
   CONFIG_SCRIPT_PATH="$script_dir/out/${BUILD_ID}/${NODE_TYPE}-setup.yaml"
   echo "$(. "$script_dir/server/config/header.sh")" > "$CONFIG_SCRIPT_PATH"
@@ -113,6 +151,7 @@ fi
 
 # loop through the supported steps
 for ELEMENT in "users" "write_files" "runcmd"; do
+
   # Write node user-data init script
   if [ -d "$script_dir/server/init/$ELEMENT" ]; then
   echo "$ELEMENT:" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-user-data.yaml"
@@ -122,17 +161,39 @@ for ELEMENT in "users" "write_files" "runcmd"; do
     done
   fi
 
-  # Write node-specific setup and config scripts
-  if [ -d "$script_dir/server/config/${NODE_TYPE}/$ELEMENT" ]; then
+  # if we're writing 2 files and a step exists, the file needs the step keyword defined
+  if [ -d "$script_dir/server/config/${NODE_TYPE}/$ELEMENT" ] || 
+     [ -d "$script_dir/server/config/shared/$ELEMENT" ]; then
     if [ "$BUNDLE_CONFIG" = "1" ]; then
-      echo "$ELEMENT:" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-setup.yaml"
+        echo "$ELEMENT:" >> $CONFIG_SCRIPT_PATH
     fi 
+  fi
+
+  # Print out all the instructions from the node-specific template files
+  if [ -d "$script_dir/server/config/${NODE_TYPE}/$ELEMENT" ]; then
     for f in `ls -1v "$script_dir/server/config/${NODE_TYPE}/$ELEMENT"`; do
       cat "$script_dir/server/config/${NODE_TYPE}/$ELEMENT/$f" >> "$CONFIG_SCRIPT_PATH"
       echo "" >> "$CONFIG_SCRIPT_PATH"
     done
   fi
+
+  # Print out all the instructions from the node-shared template files
+  if [ -d "$script_dir/server/config/shared/$ELEMENT" ]; then
+    for f in `ls -1v "$script_dir/server/config/shared/$ELEMENT"`; do
+      cat "$script_dir/server/config/shared/$ELEMENT/$f" >> "$CONFIG_SCRIPT_PATH"
+      echo "" >> "$CONFIG_SCRIPT_PATH"
+    done
+  fi
+
+  if [ $ELEMENT == "write_files" ]; then 
+    echo "$(. "$script_dir/server/init/config.sh")" >> "$CONFIG_SCRIPT_PATH"
+  fi
+
+# Done loop through the supported steps
 done
+
+
+# if were writing 2 files, one will NOT be executed on create. so it doesnt support runcmd. 
 
 # go through all the generated files and replace variables
 for f in `ls -1v $script_dir/out/${BUILD_ID}`; do
@@ -166,7 +227,16 @@ for f in `ls -1v $script_dir/out/${BUILD_ID}`; do
   sed -i '' "s#\${CONFIG_ALONZO}#${CONFIG_ALONZO}#g" $script_dir/out/$BUILD_ID/$f
 
   sed -i '' "s#\${BLOCK_NODE_SWAP_SIZE}#${BLOCK_NODE_SWAP_SIZE}#g" $script_dir/out/$BUILD_ID/$f
+  sed -i '' "s#\${BLOCK_NODE_IP_1}#${BLOCK_NODE_IP_1}#g" $script_dir/out/$BUILD_ID/$f
+  sed -i '' "s#\${BLOCK_NODE_IP_2}#${BLOCK_NODE_IP_2}#g" $script_dir/out/$BUILD_ID/$f
+
   sed -i '' "s#\${RELAY_NODE_SWAP_SIZE}#${RELAY_NODE_SWAP_SIZE}#g" $script_dir/out/$BUILD_ID/$f
+  sed -i '' "s#\${RELAY_NODE_IP_1}#${RELAY_NODE_IP_1}#g" $script_dir/out/$BUILD_ID/$f
+  sed -i '' "s#\${RELAY_NODE_IP_2}#${RELAY_NODE_IP_2}#g" $script_dir/out/$BUILD_ID/$f
+  sed -i '' "s#\${RELAY_NODE_IP_3}#${RELAY_NODE_IP_3}#g" $script_dir/out/$BUILD_ID/$f
+  sed -i '' "s#\${RELAY_NODE_IP_4}#${RELAY_NODE_IP_4}#g" $script_dir/out/$BUILD_ID/$f
+
+  sed -i '' "s#\${AUTO_INIT}#${AUTO_INIT}#g" $script_dir/out/$BUILD_ID/$f
 done
 }
 

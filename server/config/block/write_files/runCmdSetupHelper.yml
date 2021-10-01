@@ -6,14 +6,4 @@
     # This is used when splitting user data and setup scripts
     # runcmd only runs on boot, so we need another way to run those commands
     
-    if [ ! -f /run/tmp/.environment-${NODE_TYPE}.sh ]; then
-    sudo mv /run/tmp/.environment-${NODE_TYPE}.sh /home/${NODE_USER}/.environment-${NODE_TYPE}.sh
-    fi
-
-    if [ ! -f /home/${NODE_USER}/.environment-${NODE_TYPE}.sh ]; then
-    sudo chown ${NODE_USER}:${NODE_USER} /home/${NODE_USER}/.environment-${NODE_TYPE}.sh
-    echo "source .environment-${NODE_TYPE}.sh" >> /home/${NODE_USER}/.bashrc
-    fi
-
-    sudo chown ${NODE_USER}:${NODE_USER} ${NODE_HOME} -R
-    . ~/.bashrc
+    . ${NODE_SCRIPTS_PATH}/init/finish.sh

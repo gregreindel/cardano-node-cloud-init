@@ -1,0 +1,8 @@
+- path: ${NODE_SCRIPTS_PATH}/init/finish.sh
+  permissions: "750"
+  content: |
+    #!/bin/bash
+
+    if [ "${AUTO_INIT}" == "yes" ]; then 
+      . ${NODE_SCRIPTS_PATH}/init/create.sh
+    fi

@@ -28,7 +28,7 @@ write_files:
     EOF
     fi 
 
-    BLOCK_NODE_IP_1="" # Preferably a floating IP
+    BLOCK_NODE_IP_1=""
 
     while :; do
       case $1 in
@@ -62,7 +62,7 @@ write_files:
     return;
     fi
 
-    BLOCK_NODE_IP_1="" # Preferably a floating IP
+    BLOCK_NODE_IP_1=""
 
     while :; do
       case $1 in

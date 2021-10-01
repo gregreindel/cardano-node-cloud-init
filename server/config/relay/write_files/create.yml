@@ -3,34 +3,27 @@
   content: |
     #!/bin/bash
 
-    if [ ! -f /home/cardano/.nodeSetup ]; then
-    cat > /home/cardano/.nodeSetup << EOF 
-    #!/bin/bash
-    Create Topology|Not Started
-    EOF
-    fi 
+    if [[ $(du --apparent-size -B 1 /opt/cardano-node/db/immutable/ | cut -f1) -lt 3530646460 ]]; then
+        echo "You need to sync the database before setting up the node. Make sure your db is updated and the node is synced."
+        echo "If this is the first time starting your node, then this will take some time."
+        return
+    fi
+    
+    # If no block IPs in the config, ask for them
+    if [[ $(cat ${NODE_HOME}/.config.json | jq '.blockIPs | length') -eq 0 ]]; then
+      echo "Enter block node IP address."
+      read _BLOCK_NODE_IP_1
+      if [ ! -z $_BLOCK_NODE_IP_1 ]; then
+        . ${NODE_SCRIPTS_PATH}/updateConfigIP.sh "add" $_BLOCK_NODE_IP_1
+      fi
+    fi
 
-    BLOCK_NODE_IP_1="" # Preferably a floating IP
-
-    while :; do
-      case $1 in
-        -ip1)
-          BLOCK_NODE_IP_1=$2
-        ;;
-        *)
-      break
-      esac
-      shift
+    for IP in $(cat ${NODE_HOME}/.config.json | jq -r '.blockIPs[]' ); do
+    if [ ! -z "$IP" ]; then
+      . ${NODE_SCRIPTS_PATH}/updateTopologyIP.sh "add" $IP
+    fi
     done
 
-    if [ -z $BLOCK_NODE_IP_1 ]; then 
-      echo "Enter block node IP address."
-      read BLOCK_NODE_IP_1
-    fi
+    . ${NODE_SCRIPTS_PATH}/topologyUpdater.sh
 
-
-    if ! grep -q 'Create Topology|Complete' /home/cardano/.nodeSetup; then
-      sed -i "s#\Create Topology|Not Started#Create Topology|Running#g" /home/cardano/.nodeSetup
-      . ${NODE_SCRIPTS_PATH}/init/registerTopology.sh -ip1 $BLOCK_NODE_IP_1
-      . ${NODE_SCRIPTS_PATH}/topologyUpdater.sh
-    fi
+    sudo systemctl restart cardano-node

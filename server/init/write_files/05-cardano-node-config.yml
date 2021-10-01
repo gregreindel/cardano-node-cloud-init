@@ -1,4 +1,0 @@
-- path: ${NODE_HOME}/.config.json
-  permissions: "750"
-  content: |
-    { "extraParameters": "" }
