@@ -4,11 +4,17 @@
     #!/bin/bash
 
     addOrRemove="$1"
-    ip="$2"
+    blockOrRelay="$2"
+    ip="$3"
 
     if [ -z $addOrRemove ]; then 
       echo "add or remove IP from config?"
       read addOrRemove
+    fi 
+
+    if [ -z $blockOrRelay ]; then 
+      echo "Updating IP of block or relay?"
+      read blockOrRelay
     fi 
 
     if [ -z "$ip" ]; then 
@@ -23,23 +29,34 @@
     if [[ ! $ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
       echo "Invalid IP"
       return
-    fi 
+    fi
 
+    if [ $blockOrRelay == "relay" ]; then 
+      # Adding a relay IP
+      if [ $addOrRemove == "add" ]; then
+        ipExists=$(cat ${NODE_HOME}/.config.json | jq '.relayIPs | contains( ["'$ip'"])')
+        if ! $ipExists; then
+            newValue=$(cat ${NODE_HOME}/.config.json | jq '.relayIPs += ["'$ip'"]')
+            echo $newValue > ${NODE_HOME}/.config.json
+        fi
+      fi
 
-    # Adding a block IP
-    if [ $addOrRemove == "add" ]; then
-      ipExists=$(cat ${NODE_HOME}/.config.json | jq '.blockIPs | contains( ["'$ip'"])')
-      if ! $ipExists; then
-          newValue=$(cat ${NODE_HOME}/.config.json | jq '.blockIPs += ["'$ip'"]')
-          echo $newValue > ${NODE_HOME}/.config.json
+      # Removing a relay IP
+      if [ $addOrRemove == "remove" ]; then
+        ipExists=$(cat ${NODE_HOME}/.config.json | jq '.relayIPs | contains( ["'$ip'"])')
+        if $ipExists; then
+            newValue=$(cat ${NODE_HOME}/.config.json | jq '.relayIPs -= ["'$ip'"]')
+            echo $newValue > ${NODE_HOME}/.config.json
+        fi
       fi
     fi
 
-    # Removing a block IP
-    if [ $addOrRemove == "remove" ]; then
-      ipExists=$(cat ${NODE_HOME}/.config.json | jq '.blockIPs | contains( ["'$ip'"])')
-      if $ipExists; then
-          newValue=$(cat ${NODE_HOME}/.config.json | jq '.blockIPs -= ["'$ip'"]')
-          echo $newValue > ${NODE_HOME}/.config.json
+
+    if [ $blockOrRelay == "block" ]; then 
+      if [ $addOrRemove == "remove" ]; then
+        ip=""
       fi
+
+      newValue=$(cat ${NODE_HOME}/.config.json | jq '.blockIP = "'$ip'"')
+      echo $newValue > ${NODE_HOME}/.config.json
     fi

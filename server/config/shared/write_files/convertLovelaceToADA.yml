@@ -1,0 +1,5 @@
+- path: ${NODE_SCRIPTS_PATH}/toADA.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+    echo "scale=2;${1}/1000000" | bc

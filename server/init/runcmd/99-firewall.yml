@@ -1,4 +1,5 @@
 - sudo ufw default deny incoming
 - sudo ufw default allow outgoing
 - sudo ufw allow ${SSH_PORT}/tcp
+- sudo ufw allow 123/udp
 - sudo ufw enable

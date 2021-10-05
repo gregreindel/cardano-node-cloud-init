@@ -107,7 +107,12 @@
             --stake-verification-key-file stake.vkey \\
             --out-file stake.cert
 
-        echo "Now upload node.cert, payment.addr, stake.cert from cold into /home/${NODE_USER}/ on the node. Then re-run the setup."
+        cardano-cli stake-address delegation-certificate \\
+          --stake-verification-key-file stake.vkey \\
+          --cold-verification-key-file node.vkey \\
+          --out-file deleg.cert
+
+        echo "Now upload node.cert, deleg.cert, stake.cert, payment.addr from cold into /home/${NODE_USER}/ on the node. Then re-run the setup."
     EOF
     chmod +x /home/${NODE_USER}/step-1.sh
     fi
@@ -135,6 +140,7 @@
     # Output instructions
     if [ ! -f /home/${NODE_USER}/node.cert ] ||
       [ ! -f /home/${NODE_USER}/stake.cert ] ||
+      [ ! -f /home/${NODE_USER}/deleg.cert ] ||
       [ ! -f /home/${NODE_USER}/payment.addr ] ; then
       
       nextStepMessage
@@ -143,7 +149,10 @@
       RUN=true
       while $RUN
       do
-      if [ -f /home/${NODE_USER}/node.cert ] && [ -f /home/${NODE_USER}/stake.cert ] && [ -f /home/${NODE_USER}/payment.addr ]; then
+      if [ -f /home/${NODE_USER}/node.cert ] &&
+        [ -f /home/${NODE_USER}/stake.cert ] &&
+        [ -f /home/${NODE_USER}/deleg.cert ] &&
+        [ -f /home/${NODE_USER}/payment.addr ]; then
           RUN=false
           echo "Found files, continuing."
       else
@@ -156,12 +165,10 @@
     # Clean up step 1 archive
     rm -rf /home/${NODE_USER}/step-1.zip
 
-    # Stop the node
-    sudo systemctl stop cardano-node
-
     # Copy files transferred from cold into their locations
     mv /home/${NODE_USER}/node.cert ${NODE_PRIVATE_PATH}/node.cert
     mv /home/${NODE_USER}/stake.cert ${NODE_PRIVATE_PATH}/stake.cert
+    mv /home/${NODE_USER}/deleg.cert ${NODE_PRIVATE_PATH}/deleg.cert
     mv /home/${NODE_USER}/payment.addr ${NODE_PRIVATE_PATH}/payment.addr
 
     # Update config with path to keys
@@ -171,12 +178,12 @@
     EOF
     chmod +x ${NODE_SCRIPTS_PATH}/startNode.sh
 
-    # Start the node
-    sudo systemctl start cardano-node
+    # Restart the node
+    sudo systemctl restart cardano-node
 
     echo "Initial setup complete!"
     echo "For the next step you will need to send yourself some ADA to complete a transaction."
-    echo "Send ADA to $(cat ${NODE_PRIVATE_PATH}/payment.addr)"
+    echo "Send ADA to your payment address: $(cat ${NODE_PRIVATE_PATH}/payment.addr)"
 
     # Clean up
     rm -rf ${NODE_PRIVATE_PATH}/kes.vkey

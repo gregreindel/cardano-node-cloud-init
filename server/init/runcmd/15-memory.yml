@@ -1,1 +1,0 @@
-- echo -e "tmpfs /run/shm tmpfs ro,noexec,nosuid 0 0\n" >> /etc/fstab

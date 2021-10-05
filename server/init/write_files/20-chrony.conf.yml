@@ -1,0 +1,13 @@
+- path: /etc/chrony/chrony.conf
+  permissions: "550"
+  content: |
+    pool time.google.com       iburst minpoll 1 maxpoll 2 maxsources 3
+    pool ntp.ubuntu.com        iburst minpoll 1 maxpoll 2 maxsources 3
+    pool us.pool.ntp.org     iburst minpoll 1 maxpoll 2 maxsources 3
+
+    keyfile /etc/chrony/chrony.keys
+    driftfile /var/lib/chrony/chrony.drift
+    logdir /var/log/chrony
+    maxupdateskew 5.0
+    rtcsync
+    makestep 0.1 -1

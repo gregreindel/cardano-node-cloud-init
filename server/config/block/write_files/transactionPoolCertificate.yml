@@ -1,4 +1,4 @@
-- path: ${NODE_SCRIPTS_PATH}/init/registerPoolPledge.sh
+- path: ${NODE_SCRIPTS_PATH}/init/transactionPoolCertificate.sh
   permissions: "550"
   content: |
     #!/bin/bash
@@ -6,18 +6,18 @@
     function messageSignTransaction() {
     cat <<EOF
 
-    The transaction to register your pool needs to be signed. You'll need to do this on your cold machine.
+    The transaction to register your pool certificate needs to be signed. You'll need to do this on your cold machine.
 
     1.) Download the files from /home/${NODE_USER}/step-4.zip to your cold environment.
 
     Inside will be the following files:
-    - tx-register-pool.raw
+    - tx-pool-cert.raw
     - step-4.sh 
     - step-4.txt
 
     2.) Move all the files into the directory you are generating your keys with.
     3.) Execute 'step-4.sh', this will sign the transaction and generate one file.
-    4.) Upload the generated file 'tx-register-pool.signed' into /home/${NODE_USER}/
+    4.) Upload the generated file 'tx-pool-cert.signed' into /home/${NODE_USER}/
 
     EOF
     }
@@ -25,11 +25,11 @@
     function doSubmitTransaction(){
       # Submit
       submitTransaction=$( cardano-cli transaction submit \
-          --tx-file /home/${NODE_USER}/tx-register-pool.signed \
+          --tx-file /home/${NODE_USER}/tx-pool-cert.signed \
           ${NODE_NETWORK_FLAG} 2>&1 )
 
         if [[ $submitTransaction == 'Transaction successfully submitted.' ]]; then
-          sed -i "s#\Register Pool Pledge|Running#Register Pool Pledge|Complete#g" /home/cardano/.nodeSetup
+          # sed -i "s#\Register Pool Pledge|Running#Register Pool Pledge|Complete#g" /home/cardano/.nodeSetup
           echo "Transaction successfully submitted."
         else
           # Error with transaction
@@ -39,7 +39,7 @@
         fi
 
         # Cleanup
-        rm -rf /home/${NODE_USER}/tx-register-pool.signed
+        rm -rf /home/${NODE_USER}/tx-pool-cert.signed
         rm -rf /home/${NODE_USER}/step-4.zip
     }
 
@@ -57,22 +57,36 @@
     fi
 
     # If signed transaction exists, try to submit it.
-    if [ -f /home/${NODE_USER}/tx-register-pool.signed ]; then
+    if [ -f /home/${NODE_USER}/tx-pool-cert.signed ]; then
       doSubmitTransaction
       return
     fi
 
-    echo "Register Pool Pledge"
 
-    stakePoolDeposit=$(cat ${NODE_HOME}/params.json | jq -r '.stakePoolDeposit')
+    includeDeposit="false"
+    
+    echo "Register Pool Certificate"
+
     total_balance=$(. ${NODE_SCRIPTS_PATH}/getTxInfo.sh | jq -r '.balance')
 
-    # If address balance is not enough for deposit...
-    if [ ${total_balance} -lt ${stakePoolDeposit} ]; then
-      echo "Not enough ADA. You need to send funds to your payment address. The deposit is ${stakePoolDeposit} ($(. ${NODE_SCRIPTS_PATH}/toADA.sh ${stakePoolDeposit}) ADA), you have ${total_balance} ($(. ${NODE_SCRIPTS_PATH}/toADA.sh ${total_balance}) ADA)"
-      echo "Send at least ${stakePoolDeposit} lovelace ($(. ${NODE_SCRIPTS_PATH}/toADA.sh ${stakePoolDeposit}) ADA) to $(cat ${NODE_PRIVATE_PATH}/payment.addr)"
-      return
-    fi
+    stakePoolDeposit=$(cat ${NODE_HOME}/params.json | jq -r '.stakePoolDeposit')
+
+    if ! $includeDeposit; then 
+      stakePoolDeposit=0
+    fi 
+
+    # If address balance is not enough for transaction + fee ...
+    # if [ ${total_balance} -lt ${stakePoolDeposit} ]; then
+    #   echo "Not enough ADA. You need to send funds to your payment address.
+    #   echo "
+    #   Deposit |  ${stakePoolDeposit} ($(. ${NODE_SCRIPTS_PATH}/toADA.sh ${stakePoolDeposit}) ADA)
+    #   ----------------
+    #   Total   |  $( ${stakePoolDeposit}+${fee} ) ($(. ${NODE_SCRIPTS_PATH}/toADA.sh $( ${stakePoolDeposit}+${fee} )) ADA)
+    #   "
+    #   You have ${total_balance} ($(. ${NODE_SCRIPTS_PATH}/toADA.sh ${total_balance}) ADA)"
+    #   echo "Send at least ${stakePoolDeposit} lovelace ($(. ${NODE_SCRIPTS_PATH}/toADA.sh ${stakePoolDeposit}) ADA) to $(cat ${NODE_PRIVATE_PATH}/payment.addr)"
+    #   return
+    # fi
 
     currentSlot=$(. ${NODE_SCRIPTS_PATH}/getTxInfo.sh | jq -r '.slotNumber')
     tx_in=$(. ${NODE_SCRIPTS_PATH}/getTxInfo.sh | jq -r '.txIn')
@@ -86,16 +100,34 @@
         --fee 0 \
         --certificate-file ${NODE_PRIVATE_PATH}/pool.cert \
         --certificate-file ${NODE_PRIVATE_PATH}/deleg.cert \
-        --out-file /home/${NODE_USER}/tx-register-pool.tmp
+        --out-file /home/${NODE_USER}/tx-pool-cert.tmp
 
     fee=$(cardano-cli transaction calculate-min-fee \
-        --tx-body-file /home/${NODE_USER}/tx-register-pool.tmp \
+        --tx-body-file /home/${NODE_USER}/tx-pool-cert.tmp \
         --tx-in-count ${txcnt} \
         --tx-out-count 1 \
         ${NODE_NETWORK_FLAG} \
         --witness-count 3 \
         --byron-witness-count 0 \
         --protocol-params-file ${NODE_HOME}/params.json | awk '{ print $1 }')
+
+
+    # If address balance is not enough for transaction + fee ...
+    if [ ${total_balance} -lt $( ${fee} + ${stakePoolDeposit}) ]; then
+      echo "Not enough ADA. You need to send funds to your payment address.
+      echo "
+      Deposit |  ${stakePoolDeposit} ($(. ${NODE_SCRIPTS_PATH}/toADA.sh ${stakePoolDeposit}) ADA)
+      Fee     |  ${fee} ($(. ${NODE_SCRIPTS_PATH}/toADA.sh ${fee}) ADA)
+      ----------------
+      Total   |  $( ${stakePoolDeposit}+${fee} ) ($(. ${NODE_SCRIPTS_PATH}/toADA.sh $( ${stakePoolDeposit}+${fee} )) ADA)
+      "
+      You have ${total_balance} ($(. ${NODE_SCRIPTS_PATH}/toADA.sh ${total_balance}) ADA)"
+      echo "Send at least ${stakePoolDeposit} lovelace ($(. ${NODE_SCRIPTS_PATH}/toADA.sh ${stakePoolDeposit}) ADA) to $(cat ${NODE_PRIVATE_PATH}/payment.addr)"
+
+      rm /home/${NODE_USER}/tx-pool-cert.tmp
+      return
+    fi
+
 
     txOut=$((${total_balance}-${stakePoolDeposit}-${fee}))
 
@@ -106,7 +138,7 @@
         --fee ${fee} \
         --certificate-file ${NODE_PRIVATE_PATH}/pool.cert \
         --certificate-file ${NODE_PRIVATE_PATH}/deleg.cert \
-        --out-file /home/${NODE_USER}/tx-register-pool.raw
+        --out-file /home/${NODE_USER}/tx-pool-cert.raw
 
 
     # Generate file to download and run on cold machine
@@ -114,14 +146,14 @@
       cat > /home/${NODE_USER}/step-4.sh << EOF 
         #!/bin/bash
         cardano-cli transaction sign \\
-          --tx-body-file tx-register-pool.raw \\
+          --tx-body-file tx-pool-cert.raw \\
           --signing-key-file payment.skey \\
           --signing-key-file node.skey \\
           --signing-key-file stake.skey \\
           ${NODE_NETWORK_FLAG} \\
-          --out-file tx-register-pool.signed
+          --out-file tx-pool-cert.signed
 
-        echo "Upload tx-register-pool.signed into /home/${NODE_USER}/"
+        echo "Upload tx-pool-cert.signed into /home/${NODE_USER}/"
     EOF
     chmod +x /home/${NODE_USER}/step-4.sh
     fi
@@ -134,18 +166,18 @@
     # zip whats needed to transfer to cold machine
     zip -q -j \
       /home/${NODE_USER}/step-4.zip \
-      /home/${NODE_USER}/tx-register-pool.raw \
+      /home/${NODE_USER}/tx-pool-cert.raw \
       /home/${NODE_USER}/step-4.sh \
       /home/${NODE_USER}/step-4.txt
 
     # Cleanup
     rm -rf /home/${NODE_USER}/step-4.sh
     rm -rf /home/${NODE_USER}/step-4.txt
-    rm -rf /home/${NODE_USER}/tx-register-pool.tmp
-    rm -rf /home/${NODE_USER}/tx-register-pool.raw
+    rm -rf /home/${NODE_USER}/tx-pool-cert.tmp
+    rm -rf /home/${NODE_USER}/tx-pool-cert.raw
 
     # Output instructions
-    if [ ! -f /home/${NODE_USER}/tx-register-pool.signed ]; then
+    if [ ! -f /home/${NODE_USER}/tx-pool-cert.signed ]; then
 
       messageSignTransaction
 
@@ -153,9 +185,9 @@
       RUN=true
       while $RUN
       do
-      if [ -f /home/${NODE_USER}/tx-register-pool.signed ]; then
+      if [ -f /home/${NODE_USER}/tx-pool-cert.signed ]; then
           RUN=false
-          echo "Found tx-register-pool.signed! Continuing"
+          echo "Found tx-pool-cert.signed! Continuing"
           sleep 2
       else
           sleep 2
@@ -164,7 +196,7 @@
       # End loop waiting for files
     fi
 
-    if [ -f /home/${NODE_USER}/tx-register-pool.signed ]; then
+    if [ -f /home/${NODE_USER}/tx-pool-cert.signed ]; then
       # Submit transaction
       doSubmitTransaction
     fi

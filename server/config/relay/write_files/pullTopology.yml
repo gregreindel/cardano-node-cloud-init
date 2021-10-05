@@ -3,20 +3,20 @@
   content: |
     #!/bin/bash
 
-    if [[ $(cat ${NODE_HOME}/.config.json | jq '.blockIPs | length') -eq 0 ]]; then
+    if [ -z $(cat ${NODE_HOME}/.config.json | jq '.blockIP') ]; then
       echo "Enter block node IP address."
-      read _BLOCK_NODE_IP_1
-      if [ ! -z $_BLOCK_NODE_IP_1 ]; then
-        . ${NODE_SCRIPTS_PATH}/updateConfigIP.sh "add" $_BLOCK_NODE_IP_1
+      read _BLOCK_NODE_IP
+      if [ ! -z $_BLOCK_NODE_IP ]; then
+        . ${NODE_SCRIPTS_PATH}/updateConfigIP.sh "add" "block" $_BLOCK_NODE_IP
       fi
     fi
 
     [[ "${NODE_NETWORK}" = "mainnet" ]] && DEFAULT_IOHK_RELAY="relays-new.cardano-mainnet.iohk.io" || DEFAULT_IOHK_RELAY="relays-new.cardano-testnet.iohkdev.io"
 
     customPeers="${DEFAULT_IOHK_RELAY}:3001:2"
-    for IP in $(cat ${NODE_HOME}/.config.json | jq -r '.blockIPs[]' ); do
-    if [ ! -z "$IP" ]; then
-      customPeers="$IP:\${NODE_PORT}:1|${customPeers}"
+    BLOCK_NODE_IP=$(cat ${NODE_HOME}/.config.json | jq '.blockIP')
+    if [ ! -z "$BLOCK_NODE_IP" ]; then
+      customPeers="$BLOCK_NODE_IP:\${NODE_PORT}:1|${customPeers}"
     fi
     done
 

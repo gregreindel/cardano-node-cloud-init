@@ -3,76 +3,64 @@
   content: |
     #!/bin/bash
 
-    addOrRemove="$1"
-    ip="$2"
-    doRestart=""
+    # Used to generate topology for block or relay depending on IP's in ${NODE_HOME}/.config.json
 
-    while :; do
-      case $1 in
-        --restart)
-          doRestart="yes"
-        ;;
-        *)
-      break
-      esac
-      shift
-    done
+    [[ "${NODE_NETWORK}" = "mainnet" ]] && DEFAULT_IOHK_RELAY="relays-new.cardano-mainnet.iohk.io" || DEFAULT_IOHK_RELAY="relays-new.cardano-testnet.iohkdev.io"
 
-    if [ -z $addOrRemove ]; then 
-      echo "add or remove IP from topology?"
-      read addOrRemove
-    fi 
+    function resetTopology(){
+    cat > ${CONFIG_TOPOLOGY} << EOF 
+    {
+      "Producers": [
+          {
+              "addr": "$DEFAULT_IOHK_RELAY",
+              "port": 3001,
+              "valency": 2
+          }
+      ]
+    }
+    EOF
+    }
 
-    if [ -z "$ip" ]; then 
-      echo "Enter IP to $addOrRemove"
-      read ip
-    fi 
-
-    if [[ ! $ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-      echo "Invalid IP"
-      return
-    fi 
-
-
-    # Adding a block IP
-    if [ $addOrRemove == "add" ]; then
-
-    if [[ $(cat ${CONFIG_TOPOLOGY} | jq '.Producers | map(select(.addr == "'${ip}'"))  | length' ) -gt 0 ]]; then
-    echo "IP ${ip} already exists! Topology not modified."
+    function addToTopology(){
+    if [[ $(cat ${CONFIG_TOPOLOGY} | jq '.Producers | map(select(.addr == "'$1'"))  | length' ) -gt 0 ]]; then
+    echo "IP $1 already exists! Topology not modified."
     else
-    sudo ufw allow from "$ip" to any port "${NODE_PORT}"
-    addedResult=$(cat ${CONFIG_TOPOLOGY} | jq '.Producers += [{"addr": "'${ip}'", "port": ${NODE_PORT}, "valency": 1}]')
+    sudo ufw allow from "$1" to any port "${NODE_PORT}"
+    addedResult=$(cat ${CONFIG_TOPOLOGY} | jq '.Producers += [{"addr": "'$1'", "port": ${NODE_PORT}, "valency": 1}]')
     cat > ${CONFIG_TOPOLOGY} << EOF 
     $addedResult
     EOF
     fi
-    return
-    fi
+    }
 
-    # Removing a block IP
-    if [ $addOrRemove == "remove" ]; then
+    function removeFromTopology(){
+    if [[ $(cat ${CONFIG_TOPOLOGY} | jq '.Producers | map(select(.addr == "'$1'"))  | length' ) -gt 0 ]]; then
 
-    if [[ $(cat ${CONFIG_TOPOLOGY} | jq '.Producers | map(select(.addr == "'${ip}'"))  | length' ) -gt 0 ]]; then
-    sudo ufw delete from "$ip" to any port "${NODE_PORT}"
-    removedResult=$(cat ${CONFIG_TOPOLOGY} |  jq '.Producers | map(select(.addr != "'${ip}'"))')
+    if [ ! $DEFAULT_IOHK_RELAY == $1 ]; then 
+      sudo ufw delete from "$1" to any port "${NODE_PORT}"
+    fi 
+    
+    removedResult=$(cat ${CONFIG_TOPOLOGY} |  jq '.Producers | map(select(.addr != "'$1'"))')
     cat > ${CONFIG_TOPOLOGY} << EOF 
     {
         "Producers": $removedResult
     }
     EOF
     else
-    echo "IP ${ip} does not exist! Topology not modified."
+    echo "IP $1 does not exist! Topology not modified."
     fi
-    return
-    fi
+    }
 
-    if [ -z $doRestart ]; then 
-      echo "Restart required. Do it now? y/n"
-      read restartNow
-      if [ $restartNow == "y" ]; then 
-        doRestart="yes"
-      fi 
-    fi
-    if [ $doRestart == "yes" ]; then 
-      sudo systemctl restart cardano-node
+
+    # Reset topology to use default relay
+    resetTopology
+
+    [[ "${NODE_TYPE}" = "block" ]] && ITEMS=$(cat ${NODE_HOME}/.config.json  | jq -r '.relayIPs[]') || ITEMS=$(cat ${NODE_HOME}/.config.json  | jq -r '.blockIPs[]')
+
+    for IP in $(echo $ITEMS); do
+    addToTopology $IP
+    done
+
+    if [ "${NODE_TYPE}" = "block" ]; then 
+    removeFromTopology $DEFAULT_IOHK_RELAY
     fi

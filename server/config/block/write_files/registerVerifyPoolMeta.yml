@@ -1,0 +1,41 @@
+- path: ${NODE_SCRIPTS_PATH}/init/registerVerifyPoolMeta.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+    # Register pool meta public url
+    POOL_META_PUBLIC_URL=""
+    RUN=true
+    while $RUN
+    do
+      echo "Enter public url" 
+      read POOL_META_PUBLIC_URL
+      if [ ${#POOL_META_PUBLIC_URL} -gt 64 ]; then
+        message="Must be 64 characters or less"
+        echo "$(tput setaf 1)$message$(tput sgr0)"
+      else
+        RUN=false
+      fi
+    done
+
+    # Start loop waiting for public url to be live
+    RUN=true
+    while $RUN
+    do
+    response=$(curl --write-out '%{http_code}' --silent --output /dev/null $POOL_META_PUBLIC_URL)
+      if [ $response == 200 ]; then
+        wget -q -O /tmp/test-pool-meta.json -N $POOL_META_PUBLIC_URL
+        poolMetaDataHash=$(cardano-cli stake-pool metadata-hash --pool-metadata-file /tmp/test-pool-meta.json)
+
+        if [[ $poolMetaDataHash == $currentPoolMetaHash ]]; then
+            RUN=false
+            echo $POOL_META_PUBLIC_URL
+        else 
+          echo "Hash does not match"
+        fi
+
+        rm -rf /tmp/test-pool-meta.json
+      else
+          sleep 2
+      fi
+    done
+    # End loop waiting for files

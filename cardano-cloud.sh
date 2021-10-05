@@ -16,13 +16,10 @@ BUNDLE_CONFIG="1"
 
 BLOCK_NODE_SWAP_SIZE="0"
 BLOCK_NODE_IP_1=""
-BLOCK_NODE_IP_2=""
 
 RELAY_NODE_SWAP_SIZE="0"
 RELAY_NODE_IP_1=""
 RELAY_NODE_IP_2=""
-RELAY_NODE_IP_3=""
-RELAY_NODE_IP_4=""
 
 AUTO_INIT="no"
 
@@ -61,28 +58,16 @@ while [[ $# -gt 0 ]]; do
       BLOCK_NODE_IP_1="$2"
       shift
       ;;
-    --bnip2)
-      BLOCK_NODE_IP_1="$2"
-      shift
-      ;;
     --rnswap)
       RELAY_NODE_SWAP_SIZE="$2"
       shift
       ;;
     --rnip1)
-      BLOCK_NODE_IP_1="$2"
+      RELAY_NODE_IP_1="$2"
       shift
       ;;
     --rnip2)
-      BLOCK_NODE_IP_2="$2"
-      shift
-      ;;
-    --rnip3)
-      BLOCK_NODE_IP_3="$2"
-      shift
-      ;;
-    --rnip4)
-      BLOCK_NODE_IP_4="$2"
+      RELAY_NODE_IP_2="$2"
       shift
       ;;
     --auto-init)
@@ -192,7 +177,6 @@ for ELEMENT in "users" "write_files" "runcmd"; do
 # Done loop through the supported steps
 done
 
-
 # if were writing 2 files, one will NOT be executed on create. so it doesnt support runcmd. 
 
 # go through all the generated files and replace variables
@@ -228,18 +212,15 @@ for f in `ls -1v $script_dir/out/${BUILD_ID}`; do
 
   sed -i '' "s#\${BLOCK_NODE_SWAP_SIZE}#${BLOCK_NODE_SWAP_SIZE}#g" $script_dir/out/$BUILD_ID/$f
   sed -i '' "s#\${BLOCK_NODE_IP_1}#${BLOCK_NODE_IP_1}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${BLOCK_NODE_IP_2}#${BLOCK_NODE_IP_2}#g" $script_dir/out/$BUILD_ID/$f
 
   sed -i '' "s#\${RELAY_NODE_SWAP_SIZE}#${RELAY_NODE_SWAP_SIZE}#g" $script_dir/out/$BUILD_ID/$f
   sed -i '' "s#\${RELAY_NODE_IP_1}#${RELAY_NODE_IP_1}#g" $script_dir/out/$BUILD_ID/$f
   sed -i '' "s#\${RELAY_NODE_IP_2}#${RELAY_NODE_IP_2}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${RELAY_NODE_IP_3}#${RELAY_NODE_IP_3}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${RELAY_NODE_IP_4}#${RELAY_NODE_IP_4}#g" $script_dir/out/$BUILD_ID/$f
 
   sed -i '' "s#\${AUTO_INIT}#${AUTO_INIT}#g" $script_dir/out/$BUILD_ID/$f
 done
 }
 
 
-buildCloudConfiguration "relay"
 buildCloudConfiguration "block"
+buildCloudConfiguration "relay"

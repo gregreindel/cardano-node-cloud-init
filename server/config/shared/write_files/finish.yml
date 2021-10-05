@@ -2,7 +2,7 @@
   permissions: "750"
   content: |
     #!/bin/bash
-
+    echo "about to finish"
     if [ "${AUTO_INIT}" == "yes" ]; then 
       . ${NODE_SCRIPTS_PATH}/init/create.sh
     fi

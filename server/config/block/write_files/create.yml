@@ -36,15 +36,6 @@
     Register Pool Topology|Not Started
     EOF
 
-      if [[ $(cat ${NODE_HOME}/.config.json | jq '.relayIPs | length') -eq 0 ]]; then
-        echo "Enter relay node IP address."
-        read _RELAY_NODE_IP_1
-        if [ ! -z $_RELAY_NODE_IP_1 ]; then
-          . ${NODE_SCRIPTS_PATH}/updateConfigIP.sh "add" $_RELAY_NODE_IP_1
-        fi
-        # 2,3,4
-      fi
-
     fi
 
     if ! grep -q 'Register Keys|Complete' /home/cardano/.nodeSetup; then

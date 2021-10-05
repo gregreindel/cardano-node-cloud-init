@@ -5,7 +5,7 @@ echo "# date: $(date)"
 echo "# node type: ${NODE_TYPE}"
 echo "# network: ${NODE_NETWORK}"
 echo "# cardano-node version: ${NODE_VERSION}"
-if [[ ! -z $NODE_HOSTNAME ]]; then
+if [[ ! -z ${NODE_HOSTNAME} ]]; then
 echo "# hostname: ${NODE_HOSTNAME}"
 fi 
 
@@ -14,6 +14,10 @@ NODE_SWAP_SIZE=${BLOCK_NODE_SWAP_SIZE}
 else 
 NODE_SWAP_SIZE=${RELAY_NODE_SWAP_SIZE}
 fi 
+
+if [[ ! -z $USE_AWS_CLI ]]; then
+awsPackage="- awscli"
+fi
 
 echo "
 # Instructions: 
@@ -27,15 +31,22 @@ packages:
   - git
   - jq
   - zip
+  - chrony
   - rsync
   - htop
   - curl
   - wget
   - net-tools
+  $awsPackage
 
 power_state:
   mode: reboot
   condition: True
+"
+
+echo "
+mounts:
+- [ tmpfs, /run/shm, \"tmpfs\", \"o,noexec,nosuid\", \"0\", \"0\" ]
 "
 
 if [[ "${NODE_SWAP_SIZE}" -gt 0 ]]; then 
@@ -44,4 +55,4 @@ swap:
   filename: /swapfile
   size: ${NODE_SWAP_SIZE}
 "
-fi 
+fi

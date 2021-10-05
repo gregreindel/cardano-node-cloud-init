@@ -4,18 +4,27 @@
     #!/bin/bash
 
     if [[ $(cat ${NODE_HOME}/.config.json | jq '.relayIPs | length') -eq 0 ]]; then
-      echo "Enter relay node IP address."
-      read _RELAY_NODE_IP_1
-      if [ ! -z $_RELAY_NODE_IP_1 ]; then
-        . ${NODE_SCRIPTS_PATH}/updateConfigIP.sh "add" $_RELAY_NODE_IP_1
-      fi
+      _RELAY_NODE_IP_1=""
+      RUN_RELAY_NODE_IP_1=true
+      while $RUN_RELAY_NODE_IP_1
+      do
+      if [ ! -z _RELAY_NODE_IP_1 ]; then
+      . ${NODE_SCRIPTS_PATH}/updateConfigIP.sh "add" "relay" $_RELAY_NODE_IP_1
+        RUN_RELAY_NODE_IP_1=false
+      else 
+        echo "Enter relay node 1 IP address."
+        read _RELAY_NODE_IP_1
+      fi 
+      done
     fi
 
-    for IP in $(cat ${NODE_HOME}/.config.json | jq -r '.relayIPs[]' ); do
-    if [ ! -z "$IP" ]; then
-      . ${NODE_SCRIPTS_PATH}/updateTopologyIP.sh "add" $IP
+    echo "Enter relay node 2 IP address."
+    read _RELAY_NODE_IP_2
+    if [ ! -z _RELAY_NODE_IP_2 ]; then
+      . ${NODE_SCRIPTS_PATH}/updateConfigIP.sh "add" "relay" $_RELAY_NODE_IP_2
     fi
-    done
+
+    . ${NODE_SCRIPTS_PATH}/updateTopologyIP.sh
 
     if [ -f /home/${NODE_USER}/.nodeSetup ]; then
       sed -i "s#\Register Pool Topology|Running#Register Pool Topology|Complete#g" /home/${NODE_USER}/.nodeSetup

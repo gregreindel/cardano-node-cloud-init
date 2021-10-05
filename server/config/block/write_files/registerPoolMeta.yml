@@ -1,0 +1,62 @@
+- path: ${NODE_SCRIPTS_PATH}/init/registerPoolMeta.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    outputMessagePublicUrlStep() {
+    cat <<EOF
+
+    Next, upload the pool meta to a public url. 
+    For help see: https://www.coincashew.com/coins/overview-ada/guide-how-to-build-a-haskell-stakepool-node/how-to-upload-poolmetadata.json-to-github
+
+    1.) Download /home/cardano/poolMetaData.json
+    2.) Upload it to a public server
+    3.) Enter the url to the uploaded file below
+
+    Note: You must upload to a public server. The server must return a 200, with no authentication required.
+
+    EOF
+    }
+
+
+    if [ ! -f ${NODE_HOME}/poolMetaData.json ]; then
+
+      echo "Enter pool name:"
+      read REGISTER_POOL_NAME
+
+      # Register pool ticker
+      REGISTER_POOL_TICKER=""
+      RUN=true
+      while $RUN
+      do
+        echo "Enter pool ticker:"
+        read REGISTER_POOL_TICKER
+        if [ ${#REGISTER_POOL_TICKER} -gt 5 ]; then
+          message="Must be 5 characters or less"
+          echo "$(tput setaf 1)$message$(tput sgr0)"
+        else
+          RUN=false
+        fi
+      done
+
+      echo "Enter pool description:"
+      read REGISTER_POOL_DESCRIPTION
+
+      echo "Enter pool homepage:"
+      read REGISTER_POOL_WEBSITE
+
+      cat > ${NODE_HOME}/poolMetaData.json << EOF
+    {
+      "name": "$REGISTER_POOL_NAME",
+      "description": "$REGISTER_POOL_DESCRIPTION",
+      "ticker": "$REGISTER_POOL_TICKER",
+      "homepage": "$REGISTER_POOL_WEBSITE"
+    }
+    EOF
+    fi
+
+    cp ${NODE_HOME}/poolMetaData.json /home/${NODE_USER}/poolMetaData.json
+
+    outputMessagePublicUrlStep
+
+

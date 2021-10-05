@@ -10,20 +10,16 @@
     fi
     
     # If no block IPs in the config, ask for them
-    if [[ $(cat ${NODE_HOME}/.config.json | jq '.blockIPs | length') -eq 0 ]]; then
+    if [ -z $(cat ${NODE_HOME}/.config.json | jq '.blockIP') ]; then
       echo "Enter block node IP address."
-      read _BLOCK_NODE_IP_1
-      if [ ! -z $_BLOCK_NODE_IP_1 ]; then
-        . ${NODE_SCRIPTS_PATH}/updateConfigIP.sh "add" $_BLOCK_NODE_IP_1
+      read _BLOCK_NODE_IP
+      if [ ! -z $_BLOCK_NODE_IP ]; then
+        . ${NODE_SCRIPTS_PATH}/updateConfigIP.sh "add" "block" $_BLOCK_NODE_IP
       fi
     fi
 
-    for IP in $(cat ${NODE_HOME}/.config.json | jq -r '.blockIPs[]' ); do
-    if [ ! -z "$IP" ]; then
-      . ${NODE_SCRIPTS_PATH}/updateTopologyIP.sh "add" $IP
+    if [ ! -z $(cat ${NODE_HOME}/.config.json | jq '.blockIP') ]; then
+      . ${NODE_SCRIPTS_PATH}/updateTopologyIP.sh
+      . ${NODE_SCRIPTS_PATH}/topologyUpdater.sh
+      sudo systemctl restart cardano-node
     fi
-    done
-
-    . ${NODE_SCRIPTS_PATH}/topologyUpdater.sh
-
-    sudo systemctl restart cardano-node

@@ -4,16 +4,17 @@
     #!/bin/bash
     # shellcheck disable=SC2086,SC2034
 
-    CNODE_VALENCY=$(jq  '.relayIPs | length' < ${NODE_SCRIPTS_PATH}/.config.json) # for multi-IP hostnames
-    NWMAGIC=$(jq -r .networkMagic < ${CONFIG_SHELLY})
-
     export CARDANO_NODE_SOCKET_PATH=${CARDANO_NODE_SOCKET_PATH}
-    blockNo=$(/usr/local/bin/cardano-cli query tip ${NODE_NETWORK_FLAG} | jq -r .block )
 
-    if [ "${NODE_HOSTNAME}" != "CHANGE ME" ]; then
-      T_HOSTNAME="&hostname=${NODE_HOSTNAME}"
+    valency=1
+    networkMagic=$(jq -r .networkMagic < ${CONFIG_SHELLY})
+    blockNo=$(/usr/local/bin/cardano-cli query tip ${NODE_NETWORK_FLAG} | jq -r .block )
+    nodeHostname=$(jq  '.hostname' < ${NODE_HOME}/.config.json)
+
+    if [ ! -z nodeHostname ]; then
+      _hostname="&hostname=$nodeHostname"
     else
-      T_HOSTNAME=''
+      _hostname=''
     fi
 
     if [ ! -d ${NODE_LOG_PATH} ]; then
@@ -21,4 +22,4 @@
       sudo chown ${NODE_USER}:${NODE_USER} ${NODE_LOG_PATH}
     fi
 
-    curl -s "https://api.clio.one/htopology/v1/?port=${NODE_PORT}&blockNo=${blockNo}&valency=${CNODE_VALENCY}&magic=${NWMAGIC}${T_HOSTNAME}" | tee -a ${NODE_LOG_PATH}/topologyUpdaterLatest.json
+    curl -s "https://api.clio.one/htopology/v1/?port=${NODE_PORT}&blockNo=${blockNo}&valency=${valency}&magic=${networkMagic}${_hostname}" | tee -a ${NODE_LOG_PATH}/topologyUpdaterLatest.json

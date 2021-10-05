@@ -3,21 +3,6 @@
   content: |
     #!/bin/bash
 
-    outputMessagePublicUrlStep() {
-    cat <<EOF
-
-    Next, upload the pool meta to a public url. 
-    For help see: https://www.coincashew.com/coins/overview-ada/guide-how-to-build-a-haskell-stakepool-node/how-to-upload-poolmetadata.json-to-github
-
-    1.) Download /home/cardano/poolMetaData.json
-    2.) Upload it to a public server
-    3.) Enter the url to the uploaded file below
-
-    Note: You must upload to a public server. The server must return a 200, with no authentication required.
-
-    EOF
-    }
-
     outputMessageGenerateCertificates() {
     cat <<EOF
 
@@ -29,113 +14,28 @@
     - step-3.sh 
 
     2.) Move all the files into the directory you are generating your keys with.
-    3.) Execute 'step-3.sh', this will create two certificate files.
-    4.) Upload both 'pool.cert' and 'deleg.cert' into /home/${NODE_USER}/
+    3.) Execute 'step-3.sh', this will create the pool certificate files.
+    4.) Upload 'pool.cert' into /home/${NODE_USER}/
 
     EOF
     }
 
     function completePoolPledge(){
       sudo mv /home/${NODE_USER}/pool.cert ${NODE_PRIVATE_PATH}/pool.cert
-      sudo mv /home/${NODE_USER}/deleg.cert ${NODE_PRIVATE_PATH}/deleg.cert
-      sed -i "s#\Register Pool|Running#Register Pool|Complete#g" /home/cardano/.nodeSetup
     }
     
-    if [ -f /home/${NODE_USER}/pool.cert ] && [ -f /home/${NODE_USER}/deleg.cert ]; then
+    if [ -f /home/${NODE_USER}/pool.cert ]; then
       completePoolPledge
       return
     fi
 
-    if [ -f ${NODE_PRIVATE_PATH}/pool.cert ] && [ -f ${NODE_PRIVATE_PATH}/deleg.cert ]; then
+    if [ -f ${NODE_HOME}/poolMetaData.json ]; then
       return
     fi
 
-    if [ ! -f ${NODE_HOME}/poolMetaData.json ]; then
-
-      echo "Enter pool name:"
-      read REGISTER_POOL_NAME
-
-      # Register pool ticker
-      REGISTER_POOL_TICKER=""
-      RUN=true
-      while $RUN
-      do
-        echo "Enter pool ticker:"
-        read REGISTER_POOL_TICKER
-        if [ ${#REGISTER_POOL_TICKER} -gt 5 ]; then
-          message="Must be 5 characters or less"
-          echo "$(tput setaf 1)$message$(tput sgr0)"
-        else
-          RUN=false
-        fi
-      done
-
-      echo "Enter pool description:"
-      read REGISTER_POOL_DESCRIPTION
-
-      echo "Enter pool homepage:"
-      read REGISTER_POOL_WEBSITE
-
-      cat > ${NODE_HOME}/poolMetaData.json << EOF
-    {
-      "name": "$REGISTER_POOL_NAME",
-      "description": "$REGISTER_POOL_DESCRIPTION",
-      "ticker": "$REGISTER_POOL_TICKER",
-      "homepage": "$REGISTER_POOL_WEBSITE"
-    }
-    EOF
+    if [ -f ${NODE_PRIVATE_PATH}/pool.cert ]; then
+      return
     fi
-
-    currentPoolMetaHash=$( cardano-cli stake-pool metadata-hash --pool-metadata-file ${NODE_HOME}/poolMetaData.json )
-    
-    cp ${NODE_HOME}/poolMetaData.json /home/${NODE_USER}/poolMetaData.json
-
-    outputMessagePublicUrlStep
-
-    # Register pool meta public url
-    POOL_META_PUBLIC_URL=""
-    RUN=true
-    while $RUN
-    do
-      echo "Enter public url" 
-      read POOL_META_PUBLIC_URL
-      if [ ${#POOL_META_PUBLIC_URL} -gt 64 ]; then
-        message="Must be 64 characters or less"
-        echo "$(tput setaf 1)$message$(tput sgr0)"
-      else
-        RUN=false
-      fi
-    done
-
-    # Start loop waiting for public url to be live
-    RUN=true
-    while $RUN
-    do
-    response=$(curl --write-out '%{http_code}' --silent --output /dev/null $POOL_META_PUBLIC_URL)
-      if [ $response == 200 ]; then
-        wget -q -O /tmp/test-pool-meta.json -N $POOL_META_PUBLIC_URL
-        poolMetaDataHash=$(cardano-cli stake-pool metadata-hash --pool-metadata-file /tmp/test-pool-meta.json)
-
-        if [[ $poolMetaDataHash == $currentPoolMetaHash ]]; then
-            RUN=false
-        else 
-          echo "Hash does not match"
-        fi
-
-        rm -rf /tmp/test-pool-meta.json
-      else
-          sleep 2
-      fi
-    done
-    # End loop waiting for files
-
-
-
-
-
-
-
-
 
     POOL_PLEDGE_AMOUNT=""
     POOL_MARGIN=""
@@ -227,6 +127,9 @@
           --pool-relay-port ${NODE_PORT} \\"
     fi
 
+
+    currentPoolMetaHash=$( cardano-cli stake-pool metadata-hash --pool-metadata-file ${NODE_HOME}/poolMetaData.json )
+
     # Generate file to download and run on cold machine
     if [ ! -f /home/${NODE_USER}/step-3.sh ]; then
       cat > /home/${NODE_USER}/step-3.sh << EOF 
@@ -245,12 +148,7 @@
           --metadata-hash $currentPoolMetaHash \\
           --out-file pool.cert
 
-        cardano-cli stake-address delegation-certificate \\
-          --stake-verification-key-file stake.vkey \\
-          --cold-verification-key-file node.vkey \\
-          --out-file deleg.cert
-
-        echo "Upload both pool.cert and deleg.cert into node /home/${NODE_USER}"
+        echo "Upload pool.cert into node /home/${NODE_USER}"
     EOF
 
       zip -q -j \
@@ -266,10 +164,10 @@
     RUN=true
     while $RUN
     do
-    if [ -f /home/${NODE_USER}/pool.cert ] && [ -f /home/${NODE_USER}/deleg.cert ]; then
+    if [ -f /home/${NODE_USER}/pool.cert ]; then
         completePoolPledge
         rm -rf /home/${NODE_USER}/step-3.zip
-        echo "Found files pool.cert and deleg.cert."
+        echo "Found files pool.cert."
         echo "Done registering pool meta."
         RUN=false
     else

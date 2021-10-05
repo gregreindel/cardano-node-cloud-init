@@ -6,7 +6,6 @@
     # If you already registered a pool - 
     # Use this to clone the necessary keys and certs from an S3 bucket. 
 
-    sudo apt-get install awscli
 
     echo "Enter AWS S3 Bucket:"
     read S3_CONFIG_PATH
@@ -28,3 +27,8 @@
     aws s3 cp "s3://$S3_CONFIG_PATH/kes.skey" "${NODE_PRIVATE_PATH}/kes.skey"
     aws s3 cp "s3://$S3_CONFIG_PATH/vrf.skey" "${NODE_PRIVATE_PATH}/vrf.skey"
     aws s3 cp "s3://$S3_CONFIG_PATH/payment.addr" "${NODE_PRIVATE_PATH}/payment.addr"
+    aws s3 cp "s3://$S3_CONFIG_PATH/pid.txt" "${NODE_PRIVATE_PATH}/pid.txt"
+
+    unset AWS_ACCESS_KEY_ID
+    unset AWS_SECRET_ACCESS_KEY
+    unset AWS_DEFAULT_REGION
