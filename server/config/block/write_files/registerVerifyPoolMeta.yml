@@ -3,19 +3,25 @@
   content: |
     #!/bin/bash
     # Register pool meta public url
-    POOL_META_PUBLIC_URL=""
+    POOL_META_PUBLIC_URL=$1
     RUN=true
     while $RUN
     do
-      echo "Enter public url" 
-      read POOL_META_PUBLIC_URL
+      if [ -z ${POOL_META_PUBLIC_URL} ]; then
+        echo "Enter public url" 
+        read POOL_META_PUBLIC_URL
+      fi
+
       if [ ${#POOL_META_PUBLIC_URL} -gt 64 ]; then
         message="Must be 64 characters or less"
         echo "$(tput setaf 1)$message$(tput sgr0)"
+        POOL_META_PUBLIC_URL=""
       else
         RUN=false
       fi
     done
+
+    currentPoolMetaHash=$( cardano-cli stake-pool metadata-hash --pool-metadata-file ${NODE_HOME}/poolMetaData.json )
 
     # Start loop waiting for public url to be live
     RUN=true
@@ -29,6 +35,7 @@
         if [[ $poolMetaDataHash == $currentPoolMetaHash ]]; then
             RUN=false
             echo $POOL_META_PUBLIC_URL
+            return;
         else 
           echo "Hash does not match"
         fi

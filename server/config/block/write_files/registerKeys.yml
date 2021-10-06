@@ -20,7 +20,7 @@
 
     2.) Move all files into the directory you plan on keeping/generating your keys with.
     3.) Execute 'step-1.sh'. At this point many files will be generated.
-    4.) Upload 'node.cert', 'payment.addr', and 'stake.cert' from cold environment into /home/${NODE_USER}/ 
+    4.) Upload 'node.cert', 'deleg.cert', 'payment.addr', 'stake.addr', and 'stake.cert' from cold environment into /home/${NODE_USER}/ 
 
     EOF
     }
@@ -29,11 +29,20 @@
     SLOT_NUMBER=$(cardano-cli query tip ${NODE_NETWORK_FLAG} | jq -r '.slot')
     KES_PERIOD_START=$(($SLOT_NUMBER / $SLOTS_PER_KES_PERIOD))
 
-    # Make sure node is running, etc 
-
+    # Make sure node is running
     if [ -z $KES_PERIOD_START ]; then
       message="Missing KES_PERIOD_START. Is the node updated?"
       echo "$(tput setaf 1)$message$(tput sgr0)"
+      return
+    fi
+
+
+    if [ -f ${NODE_PRIVATE_PATH}/node.cert ] &&
+      [ -f ${NODE_PRIVATE_PATH}/payment.addr ] &&  
+      [ -f ${NODE_PRIVATE_PATH}/stake.addr ] &&  
+      [ -f ${NODE_PRIVATE_PATH}/stake.cert ] &&  
+      [ -f ${NODE_PRIVATE_PATH}/deleg.cert ] &&  
+      [ -f ${NODE_PRIVATE_PATH}/kes.skey ]; then 
       return
     fi
 
@@ -112,7 +121,7 @@
           --cold-verification-key-file node.vkey \\
           --out-file deleg.cert
 
-        echo "Now upload node.cert, deleg.cert, stake.cert, payment.addr from cold into /home/${NODE_USER}/ on the node. Then re-run the setup."
+        echo "Now upload node.cert, deleg.cert, stake.cert, stake.addr, payment.addr from cold into /home/${NODE_USER}/ on the node. Then re-run the setup."
     EOF
     chmod +x /home/${NODE_USER}/step-1.sh
     fi
@@ -139,8 +148,9 @@
 
     # Output instructions
     if [ ! -f /home/${NODE_USER}/node.cert ] ||
-      [ ! -f /home/${NODE_USER}/stake.cert ] ||
       [ ! -f /home/${NODE_USER}/deleg.cert ] ||
+      [ ! -f /home/${NODE_USER}/stake.cert ] ||
+      [ ! -f /home/${NODE_USER}/stake.addr ] ||
       [ ! -f /home/${NODE_USER}/payment.addr ] ; then
       
       nextStepMessage
@@ -150,8 +160,9 @@
       while $RUN
       do
       if [ -f /home/${NODE_USER}/node.cert ] &&
-        [ -f /home/${NODE_USER}/stake.cert ] &&
         [ -f /home/${NODE_USER}/deleg.cert ] &&
+        [ -f /home/${NODE_USER}/stake.cert ] &&
+        [ -f /home/${NODE_USER}/stake.addr ] &&
         [ -f /home/${NODE_USER}/payment.addr ]; then
           RUN=false
           echo "Found files, continuing."
@@ -170,6 +181,7 @@
     mv /home/${NODE_USER}/stake.cert ${NODE_PRIVATE_PATH}/stake.cert
     mv /home/${NODE_USER}/deleg.cert ${NODE_PRIVATE_PATH}/deleg.cert
     mv /home/${NODE_USER}/payment.addr ${NODE_PRIVATE_PATH}/payment.addr
+    mv /home/${NODE_USER}/stake.addr ${NODE_PRIVATE_PATH}/stake.addr
 
     # Update config with path to keys
     sudo rm ${NODE_SCRIPTS_PATH}/startNode.sh
@@ -178,15 +190,6 @@
     EOF
     chmod +x ${NODE_SCRIPTS_PATH}/startNode.sh
 
-    # Restart the node
-    sudo systemctl restart cardano-node
-
-    echo "Initial setup complete!"
-    echo "For the next step you will need to send yourself some ADA to complete a transaction."
-    echo "Send ADA to your payment address: $(cat ${NODE_PRIVATE_PATH}/payment.addr)"
-
     # Clean up
     rm -rf ${NODE_PRIVATE_PATH}/kes.vkey
     rm -rf ${NODE_PRIVATE_PATH}/vrf.vkey
-
-    sed -i "s#\Register Keys|Running#Register Keys|Complete#g" /home/cardano/.nodeSetup

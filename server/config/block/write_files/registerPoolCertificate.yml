@@ -1,4 +1,4 @@
-- path: ${NODE_SCRIPTS_PATH}/init/registerPool.sh
+- path: ${NODE_SCRIPTS_PATH}/init/registerPoolCertificate.sh
   permissions: "550"
   content: |
     #!/bin/bash
@@ -6,7 +6,7 @@
     outputMessageGenerateCertificates() {
     cat <<EOF
 
-    Now create a pool certificate and delegate certificate; you'll need to do this on your cold machine.
+    Now create a pool certificate; you'll need to do this on your cold machine.
 
     1.) Download the files from /home/${NODE_USER}/step-3.zip to your cold environment.
 
@@ -21,7 +21,7 @@
     }
 
     function completePoolPledge(){
-      sudo mv /home/${NODE_USER}/pool.cert ${NODE_PRIVATE_PATH}/pool.cert
+      . ${NODE_SCRIPTS_PATH}/init/transactionPoolCertificate.sh
     }
     
     if [ -f /home/${NODE_USER}/pool.cert ]; then
@@ -29,13 +29,17 @@
       return
     fi
 
-    if [ -f ${NODE_HOME}/poolMetaData.json ]; then
+    if [ ! -f ${NODE_HOME}/poolMetaData.json ]; then
       return
     fi
 
-    if [ -f ${NODE_PRIVATE_PATH}/pool.cert ]; then
+
+    POOL_META_PUBLIC_URL=$1
+
+    if [ -z $POOL_META_PUBLIC_URL ]; then
       return
     fi
+
 
     POOL_PLEDGE_AMOUNT=""
     POOL_MARGIN=""

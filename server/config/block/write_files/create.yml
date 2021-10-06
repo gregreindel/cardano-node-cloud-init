@@ -23,6 +23,7 @@
 
     if [ -f ${NODE_PRIVATE_PATH}/node.cert ] &&
       [ -f ${NODE_PRIVATE_PATH}/payment.addr ] &&  
+      [ -f ${NODE_PRIVATE_PATH}/stake.addr ] &&  
       [ -f ${NODE_PRIVATE_PATH}/kes.skey ] &&  
       [ -f ${NODE_PRIVATE_PATH}/pid.txt ]; then
 
@@ -54,14 +55,14 @@
 
     if ! grep -q 'Register Pool|Complete' /home/cardano/.nodeSetup; then
       sed -i "s#\Register Pool|Not Started#Register Pool|Running#g" /home/cardano/.nodeSetup
-      . ${NODE_SCRIPTS_PATH}/init/registerPool.sh
+      . ${NODE_SCRIPTS_PATH}/init/registerPoolMeta.sh
       echo "Run cni-init to continue with setup."
       return
     fi
 
     if ! grep -q 'Register Pool Pledge|Complete' /home/cardano/.nodeSetup; then
       sed -i "s#\Register Pool Pledge|Not Started#Register Pool Pledge|Running#g" /home/cardano/.nodeSetup
-      . ${NODE_SCRIPTS_PATH}/init/registerPoolPledge.sh
+      . ${NODE_SCRIPTS_PATH}/init/registerPoolCertificate.sh
       echo "Run cni-init to continue with setup."
       return
     fi

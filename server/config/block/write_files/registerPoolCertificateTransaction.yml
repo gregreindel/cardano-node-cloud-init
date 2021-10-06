@@ -44,8 +44,8 @@
     }
 
 
-    if [ ! -f ${NODE_PRIVATE_PATH}/pool.cert ]; then
-      message="Missing ${NODE_PRIVATE_PATH}/pool.cert"
+    if [ ! -f /home/${NODE_USER}/pool.cert ]; then
+      message="Missing /home/${NODE_USER}/pool.cert"
       echo "$(tput setaf 1)$message$(tput sgr0)"
       return
     fi
@@ -63,7 +63,7 @@
     fi
 
 
-    includeDeposit="false"
+    includeDeposit="true"
     
     echo "Register Pool Certificate"
 
@@ -75,32 +75,30 @@
       stakePoolDeposit=0
     fi 
 
-    # If address balance is not enough for transaction + fee ...
-    # if [ ${total_balance} -lt ${stakePoolDeposit} ]; then
-    #   echo "Not enough ADA. You need to send funds to your payment address.
-    #   echo "
-    #   Deposit |  ${stakePoolDeposit} ($(. ${NODE_SCRIPTS_PATH}/toADA.sh ${stakePoolDeposit}) ADA)
-    #   ----------------
-    #   Total   |  $( ${stakePoolDeposit}+${fee} ) ($(. ${NODE_SCRIPTS_PATH}/toADA.sh $( ${stakePoolDeposit}+${fee} )) ADA)
-    #   "
-    #   You have ${total_balance} ($(. ${NODE_SCRIPTS_PATH}/toADA.sh ${total_balance}) ADA)"
-    #   echo "Send at least ${stakePoolDeposit} lovelace ($(. ${NODE_SCRIPTS_PATH}/toADA.sh ${stakePoolDeposit}) ADA) to $(cat ${NODE_PRIVATE_PATH}/payment.addr)"
-    #   return
-    # fi
+    if [ ${stakePoolDeposit} -gt 0 ] && [ ${total_balance} -lt 500 ]; then
+      echo "No ADA. You need to send funds to your payment address to register pool certificate."
+      echo "Send at least 505 ADA to $(cat ${NODE_PRIVATE_PATH}/payment.addr)"
+      return
+    fi
 
     currentSlot=$(. ${NODE_SCRIPTS_PATH}/getTxInfo.sh | jq -r '.slotNumber')
     tx_in=$(. ${NODE_SCRIPTS_PATH}/getTxInfo.sh | jq -r '.txIn')
     txcnt=$(. ${NODE_SCRIPTS_PATH}/getTxInfo.sh | jq -r '.txCnt')
 
     # Build transaction
-    cardano-cli transaction build-raw \
+    buildRawTransaction=$(cardano-cli transaction build-raw \
         ${tx_in} \
         --tx-out $(cat ${NODE_PRIVATE_PATH}/payment.addr)+$(( ${total_balance} - ${stakePoolDeposit}))  \
         --invalid-hereafter $(( ${currentSlot} + 10000)) \
         --fee 0 \
-        --certificate-file ${NODE_PRIVATE_PATH}/pool.cert \
+        --certificate-file /home/${NODE_USER}/pool.cert \
         --certificate-file ${NODE_PRIVATE_PATH}/deleg.cert \
-        --out-file /home/${NODE_USER}/tx-pool-cert.tmp
+        --out-file /home/${NODE_USER}/tx-pool-cert.tmp  2>&1 )
+
+    if [ ! -f /home/${NODE_USER}/tx-pool-cert.tmp ]; then
+        echo "Error generating transaction. Make sure you have ADA."
+        return
+    fi
 
     fee=$(cardano-cli transaction calculate-min-fee \
         --tx-body-file /home/${NODE_USER}/tx-pool-cert.tmp \
@@ -109,25 +107,7 @@
         ${NODE_NETWORK_FLAG} \
         --witness-count 3 \
         --byron-witness-count 0 \
-        --protocol-params-file ${NODE_HOME}/params.json | awk '{ print $1 }')
-
-
-    # If address balance is not enough for transaction + fee ...
-    if [ ${total_balance} -lt $( ${fee} + ${stakePoolDeposit}) ]; then
-      echo "Not enough ADA. You need to send funds to your payment address.
-      echo "
-      Deposit |  ${stakePoolDeposit} ($(. ${NODE_SCRIPTS_PATH}/toADA.sh ${stakePoolDeposit}) ADA)
-      Fee     |  ${fee} ($(. ${NODE_SCRIPTS_PATH}/toADA.sh ${fee}) ADA)
-      ----------------
-      Total   |  $( ${stakePoolDeposit}+${fee} ) ($(. ${NODE_SCRIPTS_PATH}/toADA.sh $( ${stakePoolDeposit}+${fee} )) ADA)
-      "
-      You have ${total_balance} ($(. ${NODE_SCRIPTS_PATH}/toADA.sh ${total_balance}) ADA)"
-      echo "Send at least ${stakePoolDeposit} lovelace ($(. ${NODE_SCRIPTS_PATH}/toADA.sh ${stakePoolDeposit}) ADA) to $(cat ${NODE_PRIVATE_PATH}/payment.addr)"
-
-      rm /home/${NODE_USER}/tx-pool-cert.tmp
-      return
-    fi
-
+        --protocol-params-file ${NODE_HOME}/params.json | awk '{ print $1 }'  2>&1 )
 
     txOut=$((${total_balance}-${stakePoolDeposit}-${fee}))
 
@@ -136,7 +116,7 @@
         --tx-out $(cat ${NODE_PRIVATE_PATH}/payment.addr)+${txOut} \
         --invalid-hereafter $(( ${currentSlot} + 10000)) \
         --fee ${fee} \
-        --certificate-file ${NODE_PRIVATE_PATH}/pool.cert \
+        --certificate-file /home/${NODE_USER}/pool.cert \
         --certificate-file ${NODE_PRIVATE_PATH}/deleg.cert \
         --out-file /home/${NODE_USER}/tx-pool-cert.raw
 
