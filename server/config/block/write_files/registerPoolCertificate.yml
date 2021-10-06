@@ -33,10 +33,12 @@
       return
     fi
 
-
-    POOL_META_PUBLIC_URL=$1
+    
+    POOL_META_PUBLIC_URL=$(cat ${NODE_HOME}/.poolMetaUrl.txt)
 
     if [ -z $POOL_META_PUBLIC_URL ]; then
+      echo "Missing pool meta public url"
+      echo "Run ${NODE_SCRIPTS_PATH}/init/registerVerifyPoolMeta.sh"
       return
     fi
 
@@ -60,7 +62,7 @@
       echo "You entered $POOL_PLEDGE_AMOUNT for your pledge. Are you sure? Type yes to proceed."
       read confirmPledge
 
-      if [ ! -z $confirmPledge ] && [ $confirmPledge == "yes" ]; then 
+      if [ $confirmPledge == "yes" ]; then 
         RUN_POOL_PLEDGE_AMOUNT=false
       fi
     fi 
@@ -88,7 +90,7 @@
         RUN_POOL_RELAY_HOST_TYPE=false
       fi
     else 
-      echo "Are you going to run the pool relays using IP addresses or DNS? Default is IP addresses. Enter ip or dns."
+      echo "Are you going to run the pool relays using IP addresses or DNS? Enter ip or dns. Default is ip."
       read $POOL_RELAY_HOST_TYPE
 
       if [ -z $POOL_RELAY_HOST_TYPE ]; then 

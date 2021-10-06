@@ -34,7 +34,7 @@
 
         if [[ $poolMetaDataHash == $currentPoolMetaHash ]]; then
             RUN=false
-            echo $POOL_META_PUBLIC_URL
+            echo $POOL_META_PUBLIC_URL > ${NODE_HOME}/.poolMetaUrl.txt
             return;
         else 
           echo "Hash does not match"
