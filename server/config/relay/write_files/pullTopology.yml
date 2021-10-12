@@ -7,7 +7,7 @@
       echo "Enter block node IP address."
       read _BLOCK_NODE_IP
       if [ ! -z $_BLOCK_NODE_IP ]; then
-        . ${NODE_SCRIPTS_PATH}/updateConfigIP.sh "add" "block" $_BLOCK_NODE_IP
+        . ${NODE_SCRIPTS_PATH}/updateConfigIP.sh "add" $_BLOCK_NODE_IP
       fi
     fi
 

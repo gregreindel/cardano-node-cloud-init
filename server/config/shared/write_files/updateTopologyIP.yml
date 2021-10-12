@@ -51,11 +51,10 @@
     fi
     }
 
-
     # Reset topology to use default relay
     resetTopology
 
-    [[ "${NODE_TYPE}" = "block" ]] && ITEMS=$(cat ${NODE_HOME}/.config.json  | jq -r '.relayIPs[]') || ITEMS=$(cat ${NODE_HOME}/.config.json  | jq -r '.blockIPs[]')
+    [[ "${NODE_TYPE}" = "block" ]] && ITEMS=$(cat ${NODE_HOME}/.config.json  | jq -r '.relayIPs[]') || ITEMS=$(cat ${NODE_HOME}/.config.json  | jq -r '.blockIP')
 
     for IP in $(echo $ITEMS); do
     if [ ! -z $IP ]; then 

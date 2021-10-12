@@ -128,11 +128,11 @@
     read POOL_RELAY_HOST_2
 
     if [ $POOL_RELAY_HOST_TYPE == "ip" ]; then
-      . ${NODE_SCRIPTS_PATH}/updateConfigIP.sh "add" "relay" $POOL_RELAY_HOST_1
+      . ${NODE_SCRIPTS_PATH}/updateConfigIP.sh "add" $POOL_RELAY_HOST_1
     fi 
 
     if [ $POOL_RELAY_HOST_TYPE == "ip" ] && [ ! -z $POOL_RELAY_HOST_2 ]; then
-      . ${NODE_SCRIPTS_PATH}/updateConfigIP.sh "add" "relay" $POOL_RELAY_HOST_2
+      . ${NODE_SCRIPTS_PATH}/updateConfigIP.sh "add" $POOL_RELAY_HOST_2
     fi 
 
     hostPrefix="--pool-relay-ipv4"

@@ -3,4 +3,4 @@
   content: |
     alias cni-init=". ${NODE_SCRIPTS_PATH}/init/create.sh"
     alias cni-balance=". ${NODE_SCRIPTS_PATH}/getTxInfo.sh | jq -r '.balance'"
-    alias cni-rotate-kes=". ${NODE_SCRIPTS_PATH}/init/rotateKES.sh"
+    alias cni-rotate-kes=". ${NODE_SCRIPTS_PATH}/rotateKES.sh"

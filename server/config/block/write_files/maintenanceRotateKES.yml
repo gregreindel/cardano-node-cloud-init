@@ -3,7 +3,26 @@
   content: |
     #!/bin/bash
   
-    slotNo=$(cardano-cli query tip --mainnet | jq -r '.slot')
+    nextStepMessage() {
+    cat <<EOF
+
+    KES has been generated, download them to your cold environment as a backup and so you can use them there.
+
+    1.) Download the files from /home/${NODE_USER}/rotate-kes.zip to your cold environment. 
+
+    Inside will be the following files:
+    - kes.skey 
+    - kes.vkey 
+    - rotate-kes.sh
+
+    2.) Move all files into the directory you plan on keeping/generating your keys with.
+    3.) Execute 'rotate-kes.sh'. At this point many files will be generated.
+    4.) Upload 'node.cert' from cold environment into /home/${NODE_USER}/ 
+
+    EOF
+    }
+
+    slotNo=$(cardano-cli query tip ${NODE_NETWORK_FLAG} | jq -r '.slot')
     slotsPerKESPeriod=$(cat ${CONFIG_SHELLY} | jq -r '.slotsPerKESPeriod')
     kesPeriod=$((${slotNo} / ${slotsPerKESPeriod}))
     startKesPeriod=${kesPeriod}
@@ -23,9 +42,9 @@
             --cold-signing-key-file node.skey \
             --operational-certificate-issue-counter node.counter \
             --kes-period ${startKesPeriod} \
-            --out-file node.cert
+            --out-file node-$kesPeriod.cert
 
-        echo "Upload node.cert into node /home/${NODE_USER}"
+        echo "Upload node-$kesPeriod.cert into node /home/${NODE_USER}"
     EOF
 
       zip -q -j \
@@ -41,8 +60,8 @@
     RUN=true
     while $RUN
     do
-    if [ -f /home/${NODE_USER}/node.cert ]; then
-        mv /home/${NODE_USER}/node.cert ${NODE_PRIVATE_PATH}/node.cert
+    if [ -f /home/${NODE_USER}/node-$kesPeriod.cert ]; then
+        mv /home/${NODE_USER}/node-$kesPeriod.cert ${NODE_PRIVATE_PATH}/node.cert
         mv /tmp/kes.skey ${NODE_PRIVATE_PATH}/kes.skey
         mv /tmp/kes.vkey ${NODE_PRIVATE_PATH}/kes.vkey
         rm -rf /home/${NODE_USER}/rotate-kes.zip

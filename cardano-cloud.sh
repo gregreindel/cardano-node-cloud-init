@@ -1,7 +1,7 @@
 #!/bin/bash
 # Generates Cloud-init YAML files based on the template files in /server
 
-cardanoCloudInitGeneratorVersion="1.0.0"
+cardanoCloudInitGeneratorVersion="1.1.0"
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
 
 BUILD_ID="0"

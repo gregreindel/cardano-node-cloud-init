@@ -4,17 +4,11 @@
     #!/bin/bash
 
     addOrRemove="$1"
-    blockOrRelay="$2"
-    ip="$3"
+    ip="$2"
 
     if [ -z $addOrRemove ]; then 
       echo "add or remove IP from config?"
       read addOrRemove
-    fi 
-
-    if [ -z $blockOrRelay ]; then 
-      echo "Updating IP of block or relay?"
-      read blockOrRelay
     fi 
 
     if [ -z "$ip" ]; then 
@@ -31,7 +25,8 @@
       return
     fi
 
-    if [ $blockOrRelay == "relay" ]; then 
+    # If on the block, we are modifying the relay IPs
+    if [ ${NODE_TYPE} == "block" ]; then 
       # Adding a relay IP
       if [ $addOrRemove == "add" ]; then
         ipExists=$(cat ${NODE_HOME}/.config.json | jq '.relayIPs | contains( ["'$ip'"])')
@@ -51,8 +46,8 @@
       fi
     fi
 
-
-    if [ $blockOrRelay == "block" ]; then 
+    # If on the block, we are modifying the block IP
+    if [ ${NODE_TYPE} == "relay" ]; then 
       if [ $addOrRemove == "remove" ]; then
         ip=""
       fi
