@@ -84,12 +84,9 @@
       return
     fi
 
-    . ${NODE_SCRIPTS_PATH}/init/cleanup.sh
-
     if ! grep -q 'Register Pool Topology|Complete' /home/cardano/.nodeSetup; then
       sed -i "s#\Register Pool Topology|Not Started#Register Pool Topology|Running#g" /home/cardano/.nodeSetup
       . ${NODE_SCRIPTS_PATH}/init/registerTopology.sh
     fi
-    
     
     echo "Setup Complete."

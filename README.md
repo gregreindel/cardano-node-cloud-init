@@ -73,7 +73,6 @@ Block Node Setup
 |- /opt/cardano-node/scripts/init/registerPool.sh  
 |- /opt/cardano-node/scripts/init/registerPoolGetId.sh  
 |- /opt/cardano-node/scripts/init/registerPoolPledge.sh  
-|- /opt/cardano-node/scripts/init/cleanup.sh  
 |- /opt/cardano-node/scripts/init/registerTopology.sh   
 |- /opt/cardano-node/scripts/init/s3Sync.sh  
 |- /opt/cardano-node/scripts/getTxInfo.sh  
