@@ -58,7 +58,9 @@
     [[ "${NODE_TYPE}" = "block" ]] && ITEMS=$(cat ${NODE_HOME}/.config.json  | jq -r '.relayIPs[]') || ITEMS=$(cat ${NODE_HOME}/.config.json  | jq -r '.blockIPs[]')
 
     for IP in $(echo $ITEMS); do
-    addToTopology $IP
+    if [ ! -z $IP ]; then 
+      addToTopology $IP
+    fi
     done
 
     if [ "${NODE_TYPE}" = "block" ]; then 

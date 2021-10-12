@@ -20,7 +20,21 @@
     EOF
     }
     
+    completePoolCertificate(){
+      if [ -f /home/${NODE_USER}/step-3.zip ]; then
+        rm -rf /home/${NODE_USER}/step-3.zip
+      fi
+
+      echo "Found files pool.cert."
+      mv /home/${NODE_USER}/pool.cert ${NODE_PRIVATE_PATH}/pool.cert 
+    }
+    
+    if [ -f ${NODE_PRIVATE_PATH}/pool.cert  ]; then
+      return
+    fi
+
     if [ -f /home/${NODE_USER}/pool.cert ]; then
+      completePoolCertificate
       return
     fi
 
@@ -113,6 +127,14 @@
     echo "$questionMessage 2, or press enter to proceed with one."
     read POOL_RELAY_HOST_2
 
+    if [ $POOL_RELAY_HOST_TYPE == "ip" ]; then
+      . ${NODE_SCRIPTS_PATH}/updateConfigIP.sh "add" "relay" $POOL_RELAY_HOST_1
+    fi 
+
+    if [ $POOL_RELAY_HOST_TYPE == "ip" ] && [ ! -z $POOL_RELAY_HOST_2 ]; then
+      . ${NODE_SCRIPTS_PATH}/updateConfigIP.sh "add" "relay" $POOL_RELAY_HOST_2
+    fi 
+
     hostPrefix="--pool-relay-ipv4"
     if [ $POOL_RELAY_HOST_TYPE == "dns" ]; then
     hostPrefix="--single-host-pool-relay"
@@ -165,13 +187,10 @@
     while $RUN
     do
     if [ -f /home/${NODE_USER}/pool.cert ]; then
-        completePoolPledge
-        rm -rf /home/${NODE_USER}/step-3.zip
-        echo "Found files pool.cert."
-        echo "Done registering pool meta."
-        RUN=false
+      completePoolCertificate
+      RUN=false
     else
-        sleep 2
+      sleep 2
     fi
     done
     # End loop waiting for files
