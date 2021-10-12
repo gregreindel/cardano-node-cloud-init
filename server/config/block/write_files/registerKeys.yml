@@ -25,6 +25,22 @@
     EOF
     }
 
+    completeStep() {
+      if [ -f /home/${NODE_USER}/.nodeSetup ]; then
+      sed -i "s#\Register Keys|Running#Register Keys|Complete#g" /home/${NODE_USER}/.nodeSetup
+      fi
+    }
+    
+    if [ -f ${NODE_PRIVATE_PATH}/node.cert ] &&
+      [ -f ${NODE_PRIVATE_PATH}/payment.addr ] &&  
+      [ -f ${NODE_PRIVATE_PATH}/stake.addr ] &&  
+      [ -f ${NODE_PRIVATE_PATH}/stake.cert ] &&  
+      [ -f ${NODE_PRIVATE_PATH}/deleg.cert ] &&  
+      [ -f ${NODE_PRIVATE_PATH}/kes.skey ]; then 
+      completeStep
+      return
+    fi
+    
     SLOTS_PER_KES_PERIOD=$(cat $CONFIG_SHELLY | jq -r '.slotsPerKESPeriod')
     SLOT_NUMBER=$(cardano-cli query tip ${NODE_NETWORK_FLAG} | jq -r '.slot')
     KES_PERIOD_START=$(($SLOT_NUMBER / $SLOTS_PER_KES_PERIOD))
@@ -35,17 +51,6 @@
       echo "$(tput setaf 1)$message$(tput sgr0)"
       return
     fi
-
-
-    if [ -f ${NODE_PRIVATE_PATH}/node.cert ] &&
-      [ -f ${NODE_PRIVATE_PATH}/payment.addr ] &&  
-      [ -f ${NODE_PRIVATE_PATH}/stake.addr ] &&  
-      [ -f ${NODE_PRIVATE_PATH}/stake.cert ] &&  
-      [ -f ${NODE_PRIVATE_PATH}/deleg.cert ] &&  
-      [ -f ${NODE_PRIVATE_PATH}/kes.skey ]; then 
-      return
-    fi
-
 
     # Generate KES
     if [ ! -f ${NODE_PRIVATE_PATH}/kes.vkey ]; 
@@ -193,3 +198,5 @@
     # Clean up
     rm -rf ${NODE_PRIVATE_PATH}/kes.vkey
     rm -rf ${NODE_PRIVATE_PATH}/vrf.vkey
+
+    completeStep

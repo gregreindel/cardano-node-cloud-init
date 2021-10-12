@@ -18,6 +18,18 @@
     EOF
     }
 
+
+    completeStep() {
+      if [ -f /home/${NODE_USER}/.nodeSetup ]; then
+      sed -i "s#\Register Pool|Running#Register Pool|Complete#g" /home/cardano/.nodeSetup
+      fi
+    }
+
+    if [ -f ${NODE_HOME}/.poolMetaUrl.txt ]; then
+      return
+    fi
+
+
     if [ ! -f ${NODE_HOME}/poolMetaData.json ]; then
 
       echo "Enter pool name:"
@@ -57,5 +69,3 @@
     cp ${NODE_HOME}/poolMetaData.json /home/${NODE_USER}/poolMetaData.json
 
     outputMessagePublicUrlStep
-
-

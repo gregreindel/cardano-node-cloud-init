@@ -1,3 +1,4 @@
+# https://hydra.iohk.io/job/Cardano/iohk-nix/cardano-deployment/latest-finished/download/1/index.html
 - wget -O ${NODE_CONFIG_PATH}/${NODE_NETWORK}-byron-genesis.json https://hydra.iohk.io/build/${NODE_CONFIG_BUILD_NUMBER}/download/1/${NODE_NETWORK}-byron-genesis.json
 - wget -O ${NODE_CONFIG_PATH}/${NODE_NETWORK}-topology.json https://hydra.iohk.io/build/${NODE_CONFIG_BUILD_NUMBER}/download/1/${NODE_NETWORK}-topology.json
 - wget -O ${NODE_CONFIG_PATH}/${NODE_NETWORK}-shelley-genesis.json https://hydra.iohk.io/build/${NODE_CONFIG_BUILD_NUMBER}/download/1/${NODE_NETWORK}-shelley-genesis.json

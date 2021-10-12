@@ -75,7 +75,7 @@
       stakePoolDeposit=0
     fi 
 
-    if [ ${stakePoolDeposit} -gt 0 ] && [ ${total_balance} -lt 500 ]; then
+    if [ ${stakePoolDeposit} -lt 1 ] || [ ${total_balance} -lt ${stakePoolDeposit} ]; then
       echo "No ADA. You need to send funds to your payment address to register pool certificate."
       echo "Send at least 505 ADA to $(cat ${NODE_PRIVATE_PATH}/payment.addr)"
       return

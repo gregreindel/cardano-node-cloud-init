@@ -24,6 +24,12 @@
     EOF
     }
 
+    completeStep() {
+      if [ -f /home/${NODE_USER}/.nodeSetup ]; then
+      sed -i "s#\Register Address|Running#Register Address|Complete#g" /home/cardano/.nodeSetup
+      fi
+    }
+
     function doSubmitTransaction(){
       # Submit
       submitTransaction=$( cardano-cli transaction submit \
@@ -33,6 +39,7 @@
         if [[ $submitTransaction == 'Transaction successfully submitted.' ]]; then
           sed -i "s#\Register Address|Running#Register Address|Complete#g" /home/cardano/.nodeSetup
           echo "Transaction successfully submitted."
+          completeStep
         else
           # Error with transaction
           echo "Error submitting transaction"

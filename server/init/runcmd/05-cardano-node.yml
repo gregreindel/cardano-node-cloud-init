@@ -1,5 +1,5 @@
 # Download the compiled cardano-node for linux x86. Save to /tmp
-- wget -N https://hydra.iohk.io/build/7408438/download/1/cardano-node-${NODE_VERSION}-linux.tar.gz -P /tmp
+- wget -N https://hydra.iohk.io/build/${NODE_BINARY_BUILD}/download/1/cardano-node-${NODE_VERSION}-linux.tar.gz -P /tmp
 
 # Make directory to extract into
 - mkdir /tmp/binaries-${NODE_VERSION}

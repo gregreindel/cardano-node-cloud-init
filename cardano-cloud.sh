@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # Generates Cloud-init YAML files based on the template files in /server
 
 cardanoCloudInitGeneratorVersion="1.0.0"
@@ -9,7 +8,7 @@ BUILD_ID="0"
 
 HOSTNAME=""
 NETWORK="testnet"
-VERSION="1.29.0"
+VERSION="1.30.0"
 SSH_KEY=""
 SSH_PORT="22"
 BUNDLE_CONFIG="1"
@@ -20,6 +19,9 @@ BLOCK_NODE_IP_1=""
 RELAY_NODE_SWAP_SIZE="0"
 RELAY_NODE_IP_1=""
 RELAY_NODE_IP_2=""
+
+RELAY_HOSTNAME_1=""
+RELAY_HOSTNAME_2=""
 
 AUTO_INIT="no"
 
@@ -70,6 +72,14 @@ while [[ $# -gt 0 ]]; do
       RELAY_NODE_IP_2="$2"
       shift
       ;;
+    --rnhost1)
+      RELAY_HOSTNAME_1="$2"
+      shift
+      ;;
+    --rnhost2)
+      RELAY_HOSTNAME_2="$2"
+      shift
+      ;;
     --auto-init)
       AUTO_INIT="yes"
       shift
@@ -87,8 +97,8 @@ NODE_VERSION=$VERSION # eg 1.29.0
 NODE_HOSTNAME=$HOSTNAME # relay dns hostname
 
 # Should have a map of allowed values based on version
-NODE_BINARY_BUILD=7408438 # for binary 1.29.0
-NODE_CONFIG_BUILD_NUMBER=7578887 # For json configs 1.29.0
+NODE_BINARY_BUILD=7925128 # for binary 1.30.0
+NODE_CONFIG_BUILD_NUMBER=7926804 # For json configs 1.29.0
 
 SSH_KEY=$SSH_KEY
 SSH_PORT=$SSH_PORT
@@ -223,4 +233,9 @@ done
 
 
 buildCloudConfiguration "block"
+
 buildCloudConfiguration "relay"
+
+# if [ -z $RELAY_NODE_IP_2 ]; then 
+#   buildCloudConfiguration "relay" $RELAY_HOSTNAME_2
+# fi 

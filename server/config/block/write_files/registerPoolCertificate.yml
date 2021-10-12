@@ -19,13 +19,8 @@
 
     EOF
     }
-
-    function completePoolPledge(){
-      . ${NODE_SCRIPTS_PATH}/init/transactionPoolCertificate.sh
-    }
     
     if [ -f /home/${NODE_USER}/pool.cert ]; then
-      completePoolPledge
       return
     fi
 
@@ -33,7 +28,6 @@
       return
     fi
 
-    
     POOL_META_PUBLIC_URL=$(cat ${NODE_HOME}/.poolMetaUrl.txt)
 
     if [ -z $POOL_META_PUBLIC_URL ]; then

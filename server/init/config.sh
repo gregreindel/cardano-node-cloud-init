@@ -7,9 +7,14 @@ done
 
 hostname=${NODE_HOSTNAME}
 
-echo "
+[ ${NODE_TYPE} == "block" ] && echo "
 - path: ${NODE_HOME}/.config.json
   permissions: \"750\"
   content: |
-        $(echo { \"extraParameters\": \"\", \"blockIP\": \"${blockIP}\", \"relayIPs\": ${relayIPs}, \"hostname\": \"$hostname\" } )
+    { \"extraParameters\": \"\", \"relayIPs\": ${relayIPs} }
+" || echo "
+- path: ${NODE_HOME}/.config.json
+  permissions: \"750\"
+  content: |
+    { \"extraParameters\": \"\", \"blockIP\": \"${blockIP}\", \"hostname\": \"$hostname\" }
 "
