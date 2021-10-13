@@ -9,13 +9,12 @@
     while $RUN
     do
       if [ -z ${POOL_META_PUBLIC_URL} ]; then
-        echo "Enter public url" 
+        msg "Enter public url" 
         read POOL_META_PUBLIC_URL
       fi
 
       if [ ${#POOL_META_PUBLIC_URL} -gt 64 ]; then
-        message="Must be 64 characters or less"
-        echo "$(tput setaf 1)$message$(tput sgr0)"
+        msg "${R}Must be 64 characters or less${N}"
         POOL_META_PUBLIC_URL=""
       else
         RUN=false
@@ -32,13 +31,13 @@
             RUN=false
             echo $POOL_META_PUBLIC_URL > ${NODE_HOME}/.poolMetaUrl.txt
             mv /home/${NODE_USER}/poolMetaData.json ${NODE_HOME}/poolMetaData.json
-            echo $POOL_META_PUBLIC_URL
+            msg $POOL_META_PUBLIC_URL
             return;
         else 
-          echo "Hash does not match"
+          msg "Hash does not match"
         fi
 
         rm -rf /tmp/test-pool-meta.json
       else
-        echo "Hash does not match"
+        msg "Hash does not match"
       fi

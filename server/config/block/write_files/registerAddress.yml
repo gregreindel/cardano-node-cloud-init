@@ -30,10 +30,10 @@
 
         if [[ $submitTransaction == 'Transaction successfully submitted.' ]]; then
           mv /home/${NODE_USER}/stake.addr ${NODE_PRIVATE_PATH}/stake.addr
-          echo "Transaction successfully submitted."
+          msg "${G}Transaction successfully submitted.${N}"
         else
           # Error with transaction
-          echo "Error submitting transaction"
+          msg "${R}Error submitting transaction${N}"
           return
           # TODO: Logging
         fi

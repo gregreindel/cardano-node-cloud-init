@@ -4,17 +4,17 @@
     #!/bin/bash
 
     if [[ $(du --apparent-size -B 1 ${NODE_DB_PATH}/immutable/ | cut -f1) -lt 3796516778 ]]; then
-        echo "You need to sync the database before setting up the node. Make sure your db is updated and the node is synced."
-        echo "If this is the first time starting your node, then this will take some time."
+        msg "You need to sync the database before setting up the node. Make sure your db is updated and the node is synced."
+        msg "If this is the first time starting your node, then this will take some time."
         return
     fi
 
-    KES_PERIOD_START=$(. ${NODE_SCRIPTS_PATH}/getTxInfo.sh | jq -r '.kesPeriodStart'")
+    KES_PERIOD_START=$(. ${NODE_SCRIPTS_PATH}/getTxInfo.sh | jq -r '.kesPeriodStart')
 
     # Make sure node is running
     if [ -z $KES_PERIOD_START ]; then
-      message="Missing KES_PERIOD_START. Is the node updated and running?"
-      echo "$(tput setaf 1)$message$(tput sgr0)"
+      msg "${R}Missing KES_PERIOD_START.${N}"
+      msg "Is the node updated and running?"
       return
     fi
 
@@ -43,7 +43,7 @@
     fi
 
 
-    if [ ! -f /home/${NODE_USER}/pool.cert ]; then
+    if [ ! -f /home/${NODE_USER}/pool.cert ] || [ ! -f ${NODE_PRIVATE_PATH}/pool.cert ]; then
       . ${NODE_SCRIPTS_PATH}/utils/generatePoolCertificate.sh
       if [ ! -f /home/${NODE_USER}/pool.cert ]; then
         return
@@ -64,5 +64,7 @@
 
     . ${NODE_SCRIPTS_PATH}/init/registerTopology.sh
     
-    echo "Setup Complete. Restarting Node."
+    msg "${G}Setup Complete.${N}"
+    msg "Restarting Node."
+
     sudo systemctl restart cardano-node

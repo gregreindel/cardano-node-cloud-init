@@ -27,3 +27,8 @@
     export CONFIG_SHELLY=${CONFIG_SHELLY}
     export CONFIG_BYRON=${CONFIG_BYRON}
     export CONFIG_ALONZO=${CONFIG_ALONZO}
+
+    msg() {
+    [[ -t 2 ]] && [[ -z "${NO_COLOR-}" ]] && N='\033[0m' R='\033[0;31m' G='\033[0;32m' || N='' R='' G=''
+    echo >&2 -e "${1-}"
+    }

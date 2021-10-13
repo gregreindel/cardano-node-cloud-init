@@ -2,19 +2,25 @@
   permissions: "550"
   content: |
     #!/bin/bash
+    config=$(echo "{ \"txIn\": \"0\", \"txCnt\": \"0\", \"balance\": \"0\", \"slotNumber\": \"0\", \"slotsPerKESPeriod\": \"0\", \"kesPeriodStart\": \"0\" }" | jq)
+
+    SLOT_NUMBER=$(cardano-cli query tip --testnet-magic 1097911063 | jq -r '.slot')
+    config=$(echo $config | jq '.slotNumber = "'$SLOT_NUMBER'"')
+
+    SLOTS_PER_KES_PERIOD=$(cat /opt/cardano-node/config/testnet-shelley-genesis.json | jq -r '.slotsPerKESPeriod')
+    config=$(echo $config | jq '.slotsPerKESPeriod = "'$SLOTS_PER_KES_PERIOD'"')
+
+    KES_PERIOD_START=$(($SLOT_NUMBER / $SLOTS_PER_KES_PERIOD))
+    config=$(echo $config | jq '.kesPeriodStart = "'$KES_PERIOD_START'"')
 
     if [ ! -f $NODE_PRIVATE_PATH/payment.addr ]; then
-      echo "Missing payment.addr"
+      echo $config
       return
     fi
 
-    SLOT_NUMBER=$(cardano-cli query tip ${NODE_NETWORK_FLAG} | jq -r '.slot')
-    SLOTS_PER_KES_PERIOD=$(cat ${CONFIG_SHELLY} | jq -r '.slotsPerKESPeriod')
-    KES_PERIOD_START=$(($SLOT_NUMBER / $SLOTS_PER_KES_PERIOD))
-
     cardano-cli query utxo \
         --address $(cat "$NODE_PRIVATE_PATH/payment.addr") \
-        ${NODE_NETWORK_FLAG} > /tmp/fullUtxo.out
+        --testnet-magic 1097911063 > /tmp/fullUtxo.out
 
     tail -n +3 /tmp/fullUtxo.out | sort -k3 -nr > /tmp/balance.out
 
@@ -32,4 +38,9 @@
     rm -rf /tmp/balance.out 
     rm -rf /tmp/fullUtxo.out 
 
-    echo "{ \"txIn\": \"${tx_in}\", \"txCnt\": \"${txcnt}\", \"balance\": \"${total_balance}\", \"slotNumber\": \"${SLOT_NUMBER}\", \"slotsPerKESPeriod\": \"${SLOTS_PER_KES_PERIOD}\", \"kesPeriodStart\": \"${KES_PERIOD_START}\" }"
+
+    config=$(echo $config | jq '.txIn = "'"$tx_in"'"')
+    config=$(echo $config | jq '.txCnt = "'"$txcnt"'"')
+    config=$(echo $config | jq '.balance = "'"$total_balance"'"')
+    
+    echo $config

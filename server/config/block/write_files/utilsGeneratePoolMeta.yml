@@ -25,7 +25,7 @@
       echo $_message;
       read value;
 
-      if [ -z "$value" ] && [ ! -z $_currentValue ]; then 
+      if [ -z "$value" ] && [ ! -z "$_currentValue" ]; then 
       value=$_currentValue
       fi 
 
@@ -65,8 +65,7 @@
      setConfigProperty "ticker" "Enter pool ticker"
      _testValue=$(cat /home/${NODE_USER}/poolMetaData.json | jq -r '.ticker')
       if [ ${#_testValue} -gt 5 ]; then
-        message="Must be 5 characters or less"
-        echo "$(tput setaf 1)$message$(tput sgr0)"
+        msg "Must be 5 characters or less"
       else
         RUN=false
       fi
@@ -76,7 +75,7 @@
 
     setConfigProperty "homepage" "Enter pool homepage:"
 
-    echo "Generated poolMetaData.json"
+    msg "Generated poolMetaData.json"
     echo "`cat /home/${NODE_USER}/poolMetaData.json`"
 
     outputMessagePublicUrlStep

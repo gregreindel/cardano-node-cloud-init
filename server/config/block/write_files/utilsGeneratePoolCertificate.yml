@@ -69,7 +69,7 @@
     else
     echo "You entered $POOL_PLEDGE_AMOUNT for your pledge. Are you sure? Type yes to proceed."
     read confirmPledge
-    [ ! -z $confirmPledge ] && [ $confirmPledge == "yes" ] && RUN_POOL_PLEDGE_AMOUNT=false || POOL_PLEDGE_AMOUNT=""
+    [ ! -z $confirmPledge ] && [ $confirmPledge == "yes" ] && RUNPPA=false || POOL_PLEDGE_AMOUNT=""
     fi
     fi
     done
@@ -91,14 +91,12 @@
     while $RUN_POOL_RELAY_HOST_TYPE
     do
     if [ ! -z $POOL_RELAY_HOST_TYPE ]; then
-      if [ ! $POOL_RELAY_HOST_TYPE == "dns" ] || [ ! $POOL_RELAY_HOST_TYPE == "ip" ]; then
-        RUN_POOL_RELAY_HOST_TYPE=false
-      fi
+      RUN_POOL_RELAY_HOST_TYPE=false
     else 
       echo "Are you going to run the pool relays using IP addresses or DNS? Enter ip or dns. Default is ip."
-      read $POOL_RELAY_HOST_TYPE
+      read POOL_RELAY_HOST_TYPE
 
-      if [ -z $POOL_RELAY_HOST_TYPE ]; then 
+      if [ -z $POOL_RELAY_HOST_TYPE ] || [ ! $POOL_RELAY_HOST_TYPE == "dns" ]; then 
         POOL_RELAY_HOST_TYPE="ip"
       fi 
     fi 

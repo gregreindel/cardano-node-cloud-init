@@ -29,11 +29,11 @@
           ${NODE_NETWORK_FLAG} 2>&1 )
 
         if [[ $submitTransaction == 'Transaction successfully submitted.' ]]; then
-          echo "Transaction successfully submitted."
+          msg "${G}Transaction successfully submitted.${N}"
           mv /home/${NODE_USER}/pool.cert ${NODE_PRIVATE_PATH}/pool.cert 
         else
           # Error with transaction
-          echo "Error submitting transaction"
+          msg "${R}Error submitting transaction${N}"
           return
           # TODO: Logging
         fi
@@ -43,27 +43,25 @@
         rm -rf /home/${NODE_USER}/step-4.zip
     }
 
-    includeDeposit="false"
+    includeDeposit=false
 
     while [[ $# -gt 0 ]]; do
       key="$1"
       case $key in
         --includeDeposit)
-          includeDeposit="true"
+          includeDeposit=true
           shift
           ;;
       esac
     done
 
     if [ ! -f /home/${NODE_USER}/pool.cert ]; then
-      message="Missing /home/${NODE_USER}/pool.cert"
-      echo "$(tput setaf 1)$message$(tput sgr0)"
+      msg "Missing /home/${NODE_USER}/pool.cert"
       return
     fi
 
     if [ ! -f ${NODE_PRIVATE_PATH}/deleg.cert ]; then
-      message="Missing ${NODE_PRIVATE_PATH}/deleg.cert"
-      echo "$(tput setaf 1)$message$(tput sgr0)"
+      msg "Missing ${NODE_PRIVATE_PATH}/deleg.cert"
       return
     fi
 
@@ -81,7 +79,7 @@
       stakePoolDeposit=0
     fi 
 
-    if [ ${stakePoolDeposit} -lt 1 ] || [ ${total_balance} -lt ${stakePoolDeposit} ]; then
+    if [ ${stakePoolDeposit} -gt 1 ] || [ ${total_balance} -lt ${stakePoolDeposit} ]; then
       echo "No ADA. You need to send funds to your payment address to register pool certificate."
       echo "Send at least 505 ADA to $(cat ${NODE_PRIVATE_PATH}/payment.addr)"
       return

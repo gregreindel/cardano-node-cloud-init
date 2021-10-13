@@ -33,7 +33,7 @@
       return
     fi
     
-    KES_PERIOD_START=$(. ${NODE_SCRIPTS_PATH}/getTxInfo.sh | jq -r '.kesPeriodStart'")
+    KES_PERIOD_START=$(. ${NODE_SCRIPTS_PATH}/getTxInfo.sh | jq -r '.kesPeriodStart')
 
     # Generate KES
     if [ ! -f ${NODE_PRIVATE_PATH}/kes.vkey ]; 
