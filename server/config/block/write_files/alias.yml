@@ -2,5 +2,9 @@
   permissions: "750"
   content: |
     alias cni-init=". ${NODE_SCRIPTS_PATH}/init/create.sh"
+    alias cni-info=". ${NODE_SCRIPTS_PATH}/getTxInfo.sh | jq -r"
     alias cni-balance=". ${NODE_SCRIPTS_PATH}/getTxInfo.sh | jq -r '.balance'"
-    alias cni-rotate-kes=". ${NODE_SCRIPTS_PATH}/rotateKES.sh"
+    alias cni-update-kes=". ${NODE_SCRIPTS_PATH}/task/rotateKES.sh"
+    alias cni-reset-topology=". ${NODE_SCRIPTS_PATH}/updateTopologyIP.sh"
+    alias cni-update-topology=". ${NODE_SCRIPTS_PATH}/updateConfigIP.sh && ${NODE_SCRIPTS_PATH}/updateTopologyIP.sh"
+    alias cni-update-pool-certificate=". ${NODE_SCRIPTS_PATH}/task/regeneratePoolCertificate.sh"

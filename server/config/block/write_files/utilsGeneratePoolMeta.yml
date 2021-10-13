@@ -1,0 +1,82 @@
+- path: ${NODE_SCRIPTS_PATH}/utils/generatePoolMeta.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    outputMessagePublicUrlStep() {
+    cat <<EOF
+
+    Next, upload the pool meta to a public url. 
+    For help see: https://www.coincashew.com/coins/overview-ada/guide-how-to-build-a-haskell-stakepool-node/how-to-upload-poolmetadata.json-to-github
+
+    1.) Download /home/${NODE_USER}/poolMetaData.json
+    2.) Upload it to a public server
+    3.) Enter the url to the uploaded file below
+
+    Note: You must upload to a public server. The server must return a 200, with no authentication required.
+
+    EOF
+    }
+
+    function setConfigProperty(){
+      _currentValue=$(cat /home/${NODE_USER}/poolMetaData.json | jq -r '.'$1'')
+      [ -z "$_currentValue" ] && _message="$2" || _message="$2 (Current: $_currentValue)"
+
+      echo $_message;
+      read value;
+
+      if [ -z "$value" ] && [ ! -z $_currentValue ]; then 
+      value=$_currentValue
+      fi 
+
+      echo "`cat /home/${NODE_USER}/poolMetaData.json | jq -r  '.'$1'  = "'"$value"'"'`" > /home/${NODE_USER}/poolMetaData.json
+    }
+
+    forceReset="false"
+
+    while [[ $# -gt 0 ]]; do
+      key="$1"
+      case $key in
+        --reset)
+          forceReset="true"
+          shift
+          ;;
+      esac
+    done
+
+    if $forceReset || [ ! -f /home/${NODE_USER}/poolMetaData.json ]; then
+    cat > /home/${NODE_USER}/poolMetaData.json << EOF
+    {
+    "name": "",
+    "description": "",
+    "ticker": "",
+    "homepage": ""
+    }
+    EOF
+    fi 
+
+    setConfigProperty "name" "Enter pool name:"
+
+    # Register pool ticker
+    REGISTER_POOL_TICKER=""
+    RUN=true
+    while $RUN
+    do
+     setConfigProperty "ticker" "Enter pool ticker"
+     _testValue=$(cat /home/${NODE_USER}/poolMetaData.json | jq -r '.ticker')
+      if [ ${#_testValue} -gt 5 ]; then
+        message="Must be 5 characters or less"
+        echo "$(tput setaf 1)$message$(tput sgr0)"
+      else
+        RUN=false
+      fi
+    done
+
+    setConfigProperty "description" "Enter pool description:"
+
+    setConfigProperty "homepage" "Enter pool homepage:"
+
+    echo "Generated poolMetaData.json"
+    echo "`cat /home/${NODE_USER}/poolMetaData.json`"
+
+    outputMessagePublicUrlStep

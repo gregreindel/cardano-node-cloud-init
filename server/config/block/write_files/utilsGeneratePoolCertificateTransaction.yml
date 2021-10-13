@@ -1,4 +1,4 @@
-- path: ${NODE_SCRIPTS_PATH}/init/transactionPoolCertificate.sh
+- path: ${NODE_SCRIPTS_PATH}/utils/generatePoolCertificateTransaction.sh
   permissions: "550"
   content: |
     #!/bin/bash
@@ -30,9 +30,7 @@
 
         if [[ $submitTransaction == 'Transaction successfully submitted.' ]]; then
           echo "Transaction successfully submitted."
-          if [ -f /home/cardano/.nodeSetup ]; then 
-            sed -i "s#\Register Pool Pledge|Running#Register Pool Pledge|Complete#g" /home/cardano/.nodeSetup
-          fi 
+          mv /home/${NODE_USER}/pool.cert ${NODE_PRIVATE_PATH}/pool.cert 
         else
           # Error with transaction
           echo "Error submitting transaction"
@@ -45,9 +43,20 @@
         rm -rf /home/${NODE_USER}/step-4.zip
     }
 
+    includeDeposit="false"
 
-    if [ ! -f ${NODE_PRIVATE_PATH}/pool.cert ]; then
-      message="Missing ${NODE_PRIVATE_PATH}/pool.cert"
+    while [[ $# -gt 0 ]]; do
+      key="$1"
+      case $key in
+        --includeDeposit)
+          includeDeposit="true"
+          shift
+          ;;
+      esac
+    done
+
+    if [ ! -f /home/${NODE_USER}/pool.cert ]; then
+      message="Missing /home/${NODE_USER}/pool.cert"
       echo "$(tput setaf 1)$message$(tput sgr0)"
       return
     fi
@@ -64,9 +73,6 @@
       return
     fi
 
-
-    includeDeposit="true"
-    
     total_balance=$(. ${NODE_SCRIPTS_PATH}/getTxInfo.sh | jq -r '.balance')
 
     stakePoolDeposit=$(cat ${NODE_HOME}/params.json | jq -r '.stakePoolDeposit')
@@ -91,7 +97,7 @@
         --tx-out $(cat ${NODE_PRIVATE_PATH}/payment.addr)+$(( ${total_balance} - ${stakePoolDeposit}))  \
         --invalid-hereafter $(( ${currentSlot} + 10000)) \
         --fee 0 \
-        --certificate-file ${NODE_PRIVATE_PATH}/pool.cert \
+        --certificate-file /home/${NODE_USER}/pool.cert \
         --certificate-file ${NODE_PRIVATE_PATH}/deleg.cert \
         --out-file /home/${NODE_USER}/tx-pool-cert.tmp  2>&1 )
 
@@ -116,7 +122,7 @@
         --tx-out $(cat ${NODE_PRIVATE_PATH}/payment.addr)+${txOut} \
         --invalid-hereafter $(( ${currentSlot} + 10000)) \
         --fee ${fee} \
-        --certificate-file ${NODE_PRIVATE_PATH}/pool.cert \
+        --certificate-file /home/${NODE_USER}/pool.cert \
         --certificate-file ${NODE_PRIVATE_PATH}/deleg.cert \
         --out-file /home/${NODE_USER}/tx-pool-cert.raw
 
@@ -161,7 +167,6 @@
 
       messageSignTransaction
 
-      # Start loop waiting for files
       RUN=true
       while $RUN
       do
@@ -173,10 +178,8 @@
           sleep 2
       fi
       done
-      # End loop waiting for files
     fi
 
     if [ -f /home/${NODE_USER}/tx-pool-cert.signed ]; then
-      # Submit transaction
       doSubmitTransaction
     fi

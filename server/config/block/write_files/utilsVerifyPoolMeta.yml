@@ -1,7 +1,8 @@
-- path: ${NODE_SCRIPTS_PATH}/init/registerVerifyPoolMeta.sh
+- path: ${NODE_SCRIPTS_PATH}/utils/verifyPoolMeta.sh
   permissions: "550"
   content: |
     #!/bin/bash
+
     # Register pool meta public url
     POOL_META_PUBLIC_URL=$1
     RUN=true
@@ -21,7 +22,7 @@
       fi
     done
 
-    currentPoolMetaHash=$( cardano-cli stake-pool metadata-hash --pool-metadata-file ${NODE_HOME}/poolMetaData.json )
+    currentPoolMetaHash=$( cardano-cli stake-pool metadata-hash --pool-metadata-file /home/${NODE_USER}/poolMetaData.json )
     response=$(curl --write-out '%{http_code}' --silent --output /dev/null $POOL_META_PUBLIC_URL)
       if [ $response == 200 ]; then
         wget -q -O /tmp/test-pool-meta.json -N $POOL_META_PUBLIC_URL
@@ -30,6 +31,8 @@
         if [[ $poolMetaDataHash == $currentPoolMetaHash ]]; then
             RUN=false
             echo $POOL_META_PUBLIC_URL > ${NODE_HOME}/.poolMetaUrl.txt
+            mv /home/${NODE_USER}/poolMetaData.json ${NODE_HOME}/poolMetaData.json
+            echo $POOL_META_PUBLIC_URL
             return;
         else 
           echo "Hash does not match"

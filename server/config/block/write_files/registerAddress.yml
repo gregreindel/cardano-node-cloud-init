@@ -3,8 +3,6 @@
   content: |
     #!/bin/bash
 
-    # !! Need to make sure node is running here
-
     outputMessageSignTransaction() {
     cat <<EOF
 
@@ -19,15 +17,9 @@
 
     2.) Move all the files into the directory you are generating your keys with.
     3.) Execute 'step-2.sh', this will sign the transaction and generate one file.
-    4.) Upload the generated file 'tx-stake-address.signed' into /home/${NODE_USER}/
+    4.) Upload the generated file 'tx-stake-address.signed' and stake.addr into /home/${NODE_USER}/
 
     EOF
-    }
-
-    completeStep() {
-      if [ -f /home/${NODE_USER}/.nodeSetup ]; then
-      sed -i "s#\Register Address|Running#Register Address|Complete#g" /home/cardano/.nodeSetup
-      fi
     }
 
     function doSubmitTransaction(){
@@ -37,9 +29,8 @@
         ${NODE_NETWORK_FLAG} 2>&1 )
 
         if [[ $submitTransaction == 'Transaction successfully submitted.' ]]; then
-          sed -i "s#\Register Address|Running#Register Address|Complete#g" /home/cardano/.nodeSetup
+          mv /home/${NODE_USER}/stake.addr ${NODE_PRIVATE_PATH}/stake.addr
           echo "Transaction successfully submitted."
-          completeStep
         else
           # Error with transaction
           echo "Error submitting transaction"
@@ -51,6 +42,10 @@
         rm /home/${NODE_USER}/tx-stake-address.signed
         rm -rf /home/${NODE_USER}/step-2.zip
     }
+
+    if [ -f ${NODE_PRIVATE_PATH}/stake.addr ]; then 
+      return
+    fi 
 
     if [ ! -f ${NODE_PRIVATE_PATH}/stake.cert ]; then
       echo "Missing stake.cert"
@@ -114,6 +109,12 @@
     if [ ! -f /home/${NODE_USER}/step-2.sh ]; then
       cat > /home/${NODE_USER}/step-2.sh << EOF 
         #!/bin/bash
+
+        cardano-cli stake-address build \\
+            --stake-verification-key-file stake.vkey \\
+            --out-file stake.addr \\
+            ${NODE_NETWORK_FLAG}
+
         cardano-cli transaction sign \
           --tx-body-file tx-stake-address.raw \
           --signing-key-file payment.skey \
@@ -121,7 +122,7 @@
           ${NODE_NETWORK_FLAG} \
           --out-file tx-stake-address.signed
 
-      echo "Upload tx-stake-address.signed into /home/${NODE_USER}/ and re-run"
+      echo "Upload tx-stake-address.signed and stake.addr into /home/${NODE_USER}/"
     EOF
     chmod +x /home/${NODE_USER}/step-2.sh
     fi
@@ -145,24 +146,22 @@
     rm -rf /home/${NODE_USER}/tx-stake-address.raw
 
     # Output instructions
-    if [ ! -f /home/${NODE_USER}/tx-stake-address.signed ]; then
+    if [ ! -f /home/${NODE_USER}/tx-stake-address.signed ] || [ ! -f /home/${NODE_USER}/stake.addr ]; then
       outputMessageSignTransaction
 
-      # Start loop waiting for files
       RUN=true
       while $RUN
       do
-      if [ -f /home/${NODE_USER}/tx-stake-address.signed ]; then
+      if [ -f /home/${NODE_USER}/tx-stake-address.signed ] && [ -f /home/${NODE_USER}/stake.addr ]; then
           RUN=false
           echo "Found files, continuing."
+          sleep 1
       else
           sleep 2
       fi
       done
-      # End loop waiting for files
     fi
 
-    if [ -f /home/${NODE_USER}/tx-stake-address.signed ]; then
-      # Submit transaction
+    if [ -f /home/${NODE_USER}/tx-stake-address.signed ] && [ -f /home/${NODE_USER}/stake.addr ]; then
       doSubmitTransaction
     fi

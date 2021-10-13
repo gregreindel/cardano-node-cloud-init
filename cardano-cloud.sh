@@ -25,6 +25,16 @@ RELAY_HOSTNAME_2=""
 
 AUTO_INIT="no"
 
+
+# Get config latest build number
+# CARDANO_CONFIG_LATEST_BUILD=$(curl --silent https://hydra.iohk.io/job/Cardano/iohk-nix/cardano-deployment/latest-finished/download/1/index.html | grep -e "build" | sed 's/.*build\/\([0-9]*\)\/download.*/\1/g')
+
+# Get cardano-node latest build number
+# CARDANO_NODE_LATEST_BUILD=$(curl --silent https://hydra.iohk.io/job/Cardano/cardano-node/cardano-node-linux/latest-finished/download/1/index.html | grep -e "build" | sed 's/.*build\/\([0-9]*\)\/download.*/\1/g')
+
+# Get cardano-node latest build version number
+# CARDANO_NODE_LATEST_VERSION=$(curl --silent https://hydra.iohk.io/build/$CARDANO_NODE_LATEST_BUILD | grep -e "<a href=\"https://hydra.iohk.io/build/$CARDANO_NODE_LATEST_BUILD/download/1/cardano-node-" | sed 's/^.*[^0-9]\([0-9]*\.[0-9]*\.[0-9]*\).*$/\1/')
+
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
@@ -97,8 +107,8 @@ NODE_VERSION=$VERSION # eg 1.29.0
 NODE_HOSTNAME=$HOSTNAME # relay dns hostname
 
 # Should have a map of allowed values based on version
-NODE_BINARY_BUILD=7925128 # for binary 1.30.0
-NODE_CONFIG_BUILD_NUMBER=7926804 # For json configs 1.29.0
+NODE_BINARY_BUILD=7938912 # for binary 1.30.0
+NODE_CONFIG_BUILD_NUMBER=7926804 # For json configs 1.30.0
 
 SSH_KEY=$SSH_KEY
 SSH_PORT=$SSH_PORT

@@ -25,7 +25,3 @@
     fi
 
     . ${NODE_SCRIPTS_PATH}/updateTopologyIP.sh
-
-    if [ -f /home/${NODE_USER}/.nodeSetup ]; then
-      sed -i "s#\Register Pool Topology|Running#Register Pool Topology|Complete#g" /home/${NODE_USER}/.nodeSetup
-    fi

@@ -9,84 +9,60 @@
         return
     fi
 
-    if [ ! -f /home/cardano/.nodeSetup ]; then
-    cat > /home/cardano/.nodeSetup << EOF 
-    #!/bin/bash
-    Register Keys|Not Started
-    Register Address|Not Started
-    Register Pool|Not Started
-    Register Pool Pledge|Not Started
-    Register Pool ID|Not Started
-    Register Pool Topology|Not Started
-    EOF
+    KES_PERIOD_START=$(. ${NODE_SCRIPTS_PATH}/getTxInfo.sh | jq -r '.kesPeriodStart'")
+
+    # Make sure node is running
+    if [ -z $KES_PERIOD_START ]; then
+      message="Missing KES_PERIOD_START. Is the node updated and running?"
+      echo "$(tput setaf 1)$message$(tput sgr0)"
+      return
+    fi
+
+    if [ ! -f ${NODE_PRIVATE_PATH}/node.cert ] ||
+      [ ! -f ${NODE_PRIVATE_PATH}/deleg.cert ] ||
+      [ ! -f ${NODE_PRIVATE_PATH}/payment.addr ] ||  
+      [ ! -f ${NODE_PRIVATE_PATH}/kes.skey ]; then
+      . ${NODE_SCRIPTS_PATH}/init/registerKeys.sh
+    fi
+
+    if [ ! -f ${NODE_PRIVATE_PATH}/stake.addr ]; then 
+      . ${NODE_SCRIPTS_PATH}/init/registerAddress.sh
+      if [ ! -f ${NODE_PRIVATE_PATH}/stake.addr ]; then 
+        return
+      fi 
     fi 
 
-    if [ -f ${NODE_PRIVATE_PATH}/node.cert ] &&
-      [ -f ${NODE_PRIVATE_PATH}/payment.addr ] &&  
-      [ -f ${NODE_PRIVATE_PATH}/stake.addr ] &&  
-      [ -f ${NODE_PRIVATE_PATH}/kes.skey ] &&  
-      [ -f ${NODE_PRIVATE_PATH}/pid.txt ]; then
-
-    cat > /home/cardano/.nodeSetup << EOF 
-    #!/bin/bash
-    Register Keys|Complete
-    Register Address|Complete
-    Register Pool|Complete
-    Register Pool Pledge|Complete
-    Register Pool ID|Complete
-    Register Pool Topology|Not Started
-    EOF
-
+    if [ ! -f ${NODE_HOME}/poolMetaData.json ]; then
+      . ${NODE_SCRIPTS_PATH}/utils/generatePoolMeta.sh
+      . ${NODE_SCRIPTS_PATH}/utils/verifyPoolMeta.sh
     fi
 
-    if ! grep -q 'Register Keys|Complete' /home/cardano/.nodeSetup; then
-      sed -i "s#\Register Keys|Not Started#Register Keys|Running#g" /home/cardano/.nodeSetup
-      . ${NODE_SCRIPTS_PATH}/init/registerKeys.sh
-      if ! grep -q 'Register Keys|Complete' /home/cardano/.nodeSetup; then
-        echo "Run cni-init to continue with setup."
-        return
-      fi 
-    fi
-
-    if ! grep -q 'Register Address|Complete' /home/cardano/.nodeSetup; then
-       sed -i "s#\Register Address|Not Started#Register Address|Running#g" /home/cardano/.nodeSetup
-      . ${NODE_SCRIPTS_PATH}/init/registerAddress.sh
-      if ! grep -q 'Register Address|Complete' /home/cardano/.nodeSetup; then
-        echo "Run cni-init to continue with setup."
-        return
-      fi 
-    fi
-
-    if ! grep -q 'Register Pool|Complete' /home/cardano/.nodeSetup; then
-      sed -i "s#\Register Pool|Not Started#Register Pool|Running#g" /home/cardano/.nodeSetup
-      . ${NODE_SCRIPTS_PATH}/init/registerPoolMeta.sh
-      . ${NODE_SCRIPTS_PATH}/init/registerVerifyPoolMeta.sh
-      if [ -f ${NODE_HOME}/.poolMetaUrl.txt ]; then 
-       sed -i "s#\Register Pool|Running#Register Pool|Complete#g" /home/cardano/.nodeSetup
-      else 
-        echo "Run cni-init to continue with setup."
-        return
-      fi 
-    fi
-
-    if ! grep -q 'Register Pool Pledge|Complete' /home/cardano/.nodeSetup; then
-      sed -i "s#\Register Pool Pledge|Not Started#Register Pool Pledge|Running#g" /home/cardano/.nodeSetup
-      . ${NODE_SCRIPTS_PATH}/init/registerPoolCertificate.sh
-      . ${NODE_SCRIPTS_PATH}/init/transactionPoolCertificate.sh
-      echo "Run cni-init to continue with setup."
+    if [ ! -f ${NODE_HOME}/.poolMetaUrl.txt ]; then 
+      echo "Need to verify pool meta. Run cni-init to continue with setup."
       return
     fi
-    
-    if ! grep -q 'Register Pool ID|Complete' /home/cardano/.nodeSetup; then
-      sed -i "s#\Register Pool ID|Not Started#Register Pool ID|Running#g" /home/cardano/.nodeSetup
+
+
+    if [ ! -f /home/${NODE_USER}/pool.cert ]; then
+      . ${NODE_SCRIPTS_PATH}/utils/generatePoolCertificate.sh
+      if [ ! -f /home/${NODE_USER}/pool.cert ]; then
+        return
+      fi
+    fi
+
+
+    if [ ! -f ${NODE_PRIVATE_PATH}/pool.cert ]; then
+      . ${NODE_SCRIPTS_PATH}/utils/generatePoolCertificateTransaction.sh --includeDeposit
+      if [ ! -f ${NODE_PRIVATE_PATH}/pool.cert ]; then
+        return
+      fi 
+    fi
+
+    if [ ! -f ${NODE_PRIVATE_PATH}/pid.txt ]; then
       . ${NODE_SCRIPTS_PATH}/init/registerPoolGetId.sh
-      echo "Run cni-init to continue with setup."
-      return
     fi
 
-    if ! grep -q 'Register Pool Topology|Complete' /home/cardano/.nodeSetup; then
-      sed -i "s#\Register Pool Topology|Not Started#Register Pool Topology|Running#g" /home/cardano/.nodeSetup
-      . ${NODE_SCRIPTS_PATH}/init/registerTopology.sh
-    fi
+    . ${NODE_SCRIPTS_PATH}/init/registerTopology.sh
     
-    echo "Setup Complete."
+    echo "Setup Complete. Restarting Node."
+    sudo systemctl restart cardano-node

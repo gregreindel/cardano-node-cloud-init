@@ -9,6 +9,8 @@
     fi
 
     SLOT_NUMBER=$(cardano-cli query tip ${NODE_NETWORK_FLAG} | jq -r '.slot')
+    SLOTS_PER_KES_PERIOD=$(cat ${CONFIG_SHELLY} | jq -r '.slotsPerKESPeriod')
+    KES_PERIOD_START=$(($SLOT_NUMBER / $SLOTS_PER_KES_PERIOD))
 
     cardano-cli query utxo \
         --address $(cat "$NODE_PRIVATE_PATH/payment.addr") \
@@ -30,4 +32,4 @@
     rm -rf /tmp/balance.out 
     rm -rf /tmp/fullUtxo.out 
 
-    echo "{ \"txIn\": \"${tx_in}\", \"txCnt\": \"${txcnt}\", \"balance\": \"${total_balance}\", \"slotNumber\": \"${SLOT_NUMBER}\" }"
+    echo "{ \"txIn\": \"${tx_in}\", \"txCnt\": \"${txcnt}\", \"balance\": \"${total_balance}\", \"slotNumber\": \"${SLOT_NUMBER}\", \"slotsPerKESPeriod\": \"${SLOTS_PER_KES_PERIOD}\", \"kesPeriodStart\": \"${KES_PERIOD_START}\" }"

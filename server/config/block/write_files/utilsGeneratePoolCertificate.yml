@@ -1,4 +1,4 @@
-- path: ${NODE_SCRIPTS_PATH}/init/registerPoolCertificate.sh
+- path: ${NODE_SCRIPTS_PATH}/utils/generatePoolCertificate.sh
   permissions: "550"
   content: |
     #!/bin/bash
@@ -26,12 +26,7 @@
       fi
 
       echo "Found files pool.cert."
-      mv /home/${NODE_USER}/pool.cert ${NODE_PRIVATE_PATH}/pool.cert 
     }
-    
-    if [ -f ${NODE_PRIVATE_PATH}/pool.cert  ]; then
-      return
-    fi
 
     if [ -f /home/${NODE_USER}/pool.cert ]; then
       completePoolCertificate
@@ -39,6 +34,7 @@
     fi
 
     if [ ! -f ${NODE_HOME}/poolMetaData.json ]; then
+      echo "Missing pool meta"
       return
     fi
 
@@ -46,10 +42,8 @@
 
     if [ -z $POOL_META_PUBLIC_URL ]; then
       echo "Missing pool meta public url"
-      echo "Run ${NODE_SCRIPTS_PATH}/init/registerVerifyPoolMeta.sh"
       return
     fi
-
 
     POOL_PLEDGE_AMOUNT=""
     POOL_MARGIN=""
@@ -59,23 +53,26 @@
     POOL_RELAY_HOST_2=""
 
     # Get the pledge amount
-    RUN_POOL_PLEDGE_AMOUNT=true
-    while $RUN_POOL_PLEDGE_AMOUNT
+    POOL_PLEDGE_AMOUNT=""
+    RUNPPA=true
+    confirmPledge="no"
+
+    while $RUNPPA
     do
-    if [ -z $POOL_PLEDGE_AMOUNT ] || [[ $POOL_PLEDGE_AMOUNT -lt 0 ]]; then
+    if [ -z $POOL_PLEDGE_AMOUNT ]; then
       echo "Enter pledge amount. Enter this in lovelace."
       read POOL_PLEDGE_AMOUNT
-
-      confirmPledge="no"
-      echo "You entered $POOL_PLEDGE_AMOUNT for your pledge. Are you sure? Type yes to proceed."
-      read confirmPledge
-
-      if [ $confirmPledge == "yes" ]; then 
-        RUN_POOL_PLEDGE_AMOUNT=false
-      fi
-    fi 
+    else
+    if [[ ! $POOL_PLEDGE_AMOUNT =~ ^[[:digit:]]+$ ]] || [[ $POOL_PLEDGE_AMOUNT -lt 0 ]]; then
+      echo "Invalid pledge amount."
+      POOL_PLEDGE_AMOUNT=""
+    else
+    echo "You entered $POOL_PLEDGE_AMOUNT for your pledge. Are you sure? Type yes to proceed."
+    read confirmPledge
+    [ ! -z $confirmPledge ] && [ $confirmPledge == "yes" ] && RUN_POOL_PLEDGE_AMOUNT=false || POOL_PLEDGE_AMOUNT=""
+    fi
+    fi
     done
-
 
     # Get the pool margin
     RUN_POOL_MARGIN=true
@@ -182,7 +179,6 @@
 
     outputMessageGenerateCertificates
 
-    # Start loop waiting for files
     RUN=true
     while $RUN
     do
@@ -193,4 +189,3 @@
       sleep 2
     fi
     done
-    # End loop waiting for files

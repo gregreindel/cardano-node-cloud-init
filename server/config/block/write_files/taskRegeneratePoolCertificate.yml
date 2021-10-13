@@ -1,0 +1,42 @@
+- path: ${NODE_SCRIPTS_PATH}/task/regeneratePoolCertificate.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    generateMeta="false"
+
+    while [[ $# -gt 0 ]]; do
+      key="$1"
+      case $key in
+        --generateMeta)
+          generateMeta="true"
+          shift
+          ;;
+      esac
+    done
+
+    if $generateMeta; then
+      . ${NODE_SCRIPTS_PATH}/utils/generatePoolMeta.sh --forceReset
+      . ${NODE_SCRIPTS_PATH}/utils/verifyPoolMeta.sh
+
+      if [ ! -f ${NODE_HOME}/.poolMetaUrl.txt ]; then 
+        echo "Need to verify pool meta. Run cni-init to continue with setup."
+        return
+      fi
+    fi 
+
+
+    if [ ! -f /home/${NODE_USER}/pool.cert ]; then
+      . ${NODE_SCRIPTS_PATH}/utils/generatePoolCertificate.sh
+      if [ ! -f /home/${NODE_USER}/pool.cert ]; then
+        return
+      fi
+    fi
+
+
+    if [ ! -f ${NODE_PRIVATE_PATH}/pool.cert ]; then
+      . ${NODE_SCRIPTS_PATH}/utils/generatePoolCertificateTransaction.sh
+      if [ ! -f ${NODE_PRIVATE_PATH}/pool.cert ]; then
+        return
+      fi 
+    fi

@@ -1,4 +1,4 @@
-- path: ${NODE_SCRIPTS_PATH}/rotateKES.sh
+- path: ${NODE_SCRIPTS_PATH}/task/rotateKES.sh
   permissions: "550"
   content: |
     #!/bin/bash
@@ -56,7 +56,6 @@
       rm -rf /home/${NODE_USER}/rotate-kes.sh
     fi
 
-    # Start loop waiting for files
     RUN=true
     while $RUN
     do
@@ -70,6 +69,5 @@
         sleep 2
     fi
     done
-    # End loop waiting for files
 
     sudo systemctl restart cardano-node

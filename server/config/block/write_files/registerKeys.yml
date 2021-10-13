@@ -20,37 +20,20 @@
 
     2.) Move all files into the directory you plan on keeping/generating your keys with.
     3.) Execute 'step-1.sh'. At this point many files will be generated.
-    4.) Upload 'node.cert', 'deleg.cert', 'payment.addr', 'stake.addr', and 'stake.cert' from cold environment into /home/${NODE_USER}/ 
+    4.) Upload 'node.cert', 'deleg.cert', 'payment.addr', and 'stake.cert' from cold environment into /home/${NODE_USER}/ 
 
     EOF
     }
 
-    completeStep() {
-      if [ -f /home/${NODE_USER}/.nodeSetup ]; then
-      sed -i "s#\Register Keys|Running#Register Keys|Complete#g" /home/${NODE_USER}/.nodeSetup
-      fi
-    }
-    
     if [ -f ${NODE_PRIVATE_PATH}/node.cert ] &&
       [ -f ${NODE_PRIVATE_PATH}/payment.addr ] &&  
-      [ -f ${NODE_PRIVATE_PATH}/stake.addr ] &&  
       [ -f ${NODE_PRIVATE_PATH}/stake.cert ] &&  
       [ -f ${NODE_PRIVATE_PATH}/deleg.cert ] &&  
       [ -f ${NODE_PRIVATE_PATH}/kes.skey ]; then 
-      completeStep
       return
     fi
     
-    SLOTS_PER_KES_PERIOD=$(cat $CONFIG_SHELLY | jq -r '.slotsPerKESPeriod')
-    SLOT_NUMBER=$(cardano-cli query tip ${NODE_NETWORK_FLAG} | jq -r '.slot')
-    KES_PERIOD_START=$(($SLOT_NUMBER / $SLOTS_PER_KES_PERIOD))
-
-    # Make sure node is running
-    if [ -z $KES_PERIOD_START ]; then
-      message="Missing KES_PERIOD_START. Is the node updated?"
-      echo "$(tput setaf 1)$message$(tput sgr0)"
-      return
-    fi
+    KES_PERIOD_START=$(. ${NODE_SCRIPTS_PATH}/getTxInfo.sh | jq -r '.kesPeriodStart'")
 
     # Generate KES
     if [ ! -f ${NODE_PRIVATE_PATH}/kes.vkey ]; 
@@ -106,11 +89,6 @@
             --verification-key-file stake.vkey \\
             --signing-key-file stake.skey
 
-        cardano-cli stake-address build \\
-            --stake-verification-key-file stake.vkey \\
-            --out-file stake.addr \\
-            ${NODE_NETWORK_FLAG}
-
         cardano-cli address build \\
             --payment-verification-key-file payment.vkey \\
             --stake-verification-key-file stake.vkey \\
@@ -126,7 +104,7 @@
           --cold-verification-key-file node.vkey \\
           --out-file deleg.cert
 
-        echo "Now upload node.cert, deleg.cert, stake.cert, stake.addr, payment.addr from cold into /home/${NODE_USER}/ on the node. Then re-run the setup."
+        echo "Now upload node.cert, deleg.cert, stake.cert, payment.addr from cold into /home/${NODE_USER}/ on the node. Then re-run the setup."
     EOF
     chmod +x /home/${NODE_USER}/step-1.sh
     fi
@@ -155,7 +133,6 @@
     if [ ! -f /home/${NODE_USER}/node.cert ] ||
       [ ! -f /home/${NODE_USER}/deleg.cert ] ||
       [ ! -f /home/${NODE_USER}/stake.cert ] ||
-      [ ! -f /home/${NODE_USER}/stake.addr ] ||
       [ ! -f /home/${NODE_USER}/payment.addr ] ; then
       
       nextStepMessage
@@ -167,7 +144,6 @@
       if [ -f /home/${NODE_USER}/node.cert ] &&
         [ -f /home/${NODE_USER}/deleg.cert ] &&
         [ -f /home/${NODE_USER}/stake.cert ] &&
-        [ -f /home/${NODE_USER}/stake.addr ] &&
         [ -f /home/${NODE_USER}/payment.addr ]; then
           RUN=false
           echo "Found files, continuing."
@@ -186,7 +162,6 @@
     mv /home/${NODE_USER}/stake.cert ${NODE_PRIVATE_PATH}/stake.cert
     mv /home/${NODE_USER}/deleg.cert ${NODE_PRIVATE_PATH}/deleg.cert
     mv /home/${NODE_USER}/payment.addr ${NODE_PRIVATE_PATH}/payment.addr
-    mv /home/${NODE_USER}/stake.addr ${NODE_PRIVATE_PATH}/stake.addr
 
     # Update config with path to keys
     sudo rm ${NODE_SCRIPTS_PATH}/startNode.sh
@@ -194,9 +169,3 @@
     /usr/local/bin/cardano-node run --topology ${CONFIG_TOPOLOGY} --database-path ${NODE_DB_PATH} --socket-path ${NODE_SOCKET_PATH} --host-addr 0.0.0.0 --port ${NODE_PORT} --config ${CONFIG_CONFIG} --shelley-kes-key ${NODE_PRIVATE_PATH}/kes.skey --shelley-vrf-key $NODE_PRIVATE_PATH/vrf.skey --shelley-operational-certificate ${NODE_PRIVATE_PATH}/node.cert
     EOF
     chmod +x ${NODE_SCRIPTS_PATH}/startNode.sh
-
-    # Clean up
-    rm -rf ${NODE_PRIVATE_PATH}/kes.vkey
-    rm -rf ${NODE_PRIVATE_PATH}/vrf.vkey
-
-    completeStep

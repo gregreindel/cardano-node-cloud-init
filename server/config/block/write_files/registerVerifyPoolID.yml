@@ -18,13 +18,12 @@
 
     verifyPoolId(){
       checkPoolId=$( cardano-cli query stake-snapshot ${NODE_NETWORK_FLAG} --stake-pool-id $(cat /home/${NODE_USER}/pid.txt)  2>&1 )
-      mv /home/${NODE_USER}/pid.txt ${NODE_PRIVATE_PATH}/pid.txt
+
+      if [ -f /home/${NODE_USER}/pid.txt ]; then 
+        mv /home/${NODE_USER}/pid.txt ${NODE_PRIVATE_PATH}/pid.txt
+      fi
       if [ -f /home/${NODE_USER}/step-5.zip ]; then 
         rm -rf /home/${NODE_USER}/step-5.zip
-      fi
-
-      if [ -f /home/${NODE_USER}/.nodeSetup ]; then 
-      sed -i "s#\Register Pool ID|Running#Register Pool ID|Complete#g" /home/${NODE_USER}/.nodeSetup
       fi
     }
 
@@ -55,7 +54,6 @@
 
     outputMessageStep
 
-    # Start loop waiting for files
     RUN=true
     while $RUN
     do
@@ -66,4 +64,3 @@
         sleep 2
     fi
     done
-    # End loop waiting for files
