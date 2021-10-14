@@ -9,7 +9,7 @@
     valency=1
     networkMagic=$(jq -r .networkMagic < ${CONFIG_SHELLY})
     blockNo=$(/usr/local/bin/cardano-cli query tip ${NODE_NETWORK_FLAG} | jq -r .block )
-    nodeHostname=$(jq  '.hostname' < ${NODE_HOME}/.config.json)
+    nodeHostname=$(jq -r  '.hostname' < ${NODE_HOME}/.config.json)
 
     if [ ! -z nodeHostname ]; then
       _hostname="&hostname=$nodeHostname"

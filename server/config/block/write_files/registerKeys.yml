@@ -164,7 +164,6 @@
     mv /home/${NODE_USER}/payment.addr ${NODE_PRIVATE_PATH}/payment.addr
 
     # Update config with path to keys
-    sudo rm ${NODE_SCRIPTS_PATH}/startNode.sh
     cat > ${NODE_SCRIPTS_PATH}/startNode.sh << EOF 
     /usr/local/bin/cardano-node run --topology ${CONFIG_TOPOLOGY} --database-path ${NODE_DB_PATH} --socket-path ${NODE_SOCKET_PATH} --host-addr 0.0.0.0 --port ${NODE_PORT} --config ${CONFIG_CONFIG} --shelley-kes-key ${NODE_PRIVATE_PATH}/kes.skey --shelley-vrf-key $NODE_PRIVATE_PATH/vrf.skey --shelley-operational-certificate ${NODE_PRIVATE_PATH}/node.cert
     EOF

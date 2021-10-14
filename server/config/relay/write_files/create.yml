@@ -18,6 +18,13 @@
       fi
     fi
 
+    # If no hostname in the config, ask for it
+    if [ -z $(cat ${NODE_HOME}/.config.json | jq -r '.hostname') ]; then
+      echo "Enter relay dns hostname OR press enter to use ip address."
+      read _RELAY_HOSTNAME
+      cat ${NODE_HOME}/.config.json | jq -r '.hostname = "'$_RELAY_HOSTNAME'"' > ${NODE_HOME}/.config.json
+    fi
+
     if [ ! -z $(cat ${NODE_HOME}/.config.json | jq -r '.blockIP') ]; then
       . ${NODE_SCRIPTS_PATH}/updateTopologyIP.sh
       . ${NODE_SCRIPTS_PATH}/topologyUpdater.sh

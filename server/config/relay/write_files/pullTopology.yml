@@ -18,7 +18,6 @@
     if [ ! -z "$BLOCK_NODE_IP" ]; then
       customPeers="$BLOCK_NODE_IP:\${NODE_PORT}:1|${customPeers}"
     fi
-    done
 
     pullTopologyResponseCode="$(curl -s ${CONFIG_TOPOLOGY} "https://api.clio.one/htopology/v1/fetch/?max=20&customPeers=\${customPeers}" | jq -r '.resultcode')"
     
