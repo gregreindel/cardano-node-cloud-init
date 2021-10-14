@@ -4,7 +4,7 @@ echo "#cloud-config"
 echo "# date: $(date)"
 echo "# node type: ${NODE_TYPE}"
 echo "# network: ${NODE_NETWORK}"
-echo "# cardano-node version: ${NODE_VERSION}"
+echo "# cardano-node version: ${NODE_VERSION} build ${NODE_CONFIG_BUILD_NUMBER}"
 if [[ ! -z ${NODE_HOSTNAME} ]]; then
 echo "# hostname: ${NODE_HOSTNAME}"
 fi 

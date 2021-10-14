@@ -8,7 +8,7 @@ BUILD_ID="0"
 
 HOSTNAME=""
 NETWORK="testnet"
-VERSION="1.30.0"
+VERSION="latest"
 SSH_KEY=""
 SSH_PORT="22"
 BUNDLE_CONFIG="1"
@@ -26,14 +26,6 @@ RELAY_HOSTNAME_2=""
 AUTO_INIT="no"
 
 
-# Get config latest build number
-# CARDANO_CONFIG_LATEST_BUILD=$(curl --silent https://hydra.iohk.io/job/Cardano/iohk-nix/cardano-deployment/latest-finished/download/1/index.html | grep -e "build" | sed 's/.*build\/\([0-9]*\)\/download.*/\1/g')
-
-# Get cardano-node latest build number
-# CARDANO_NODE_LATEST_BUILD=$(curl --silent https://hydra.iohk.io/job/Cardano/cardano-node/cardano-node-linux/latest-finished/download/1/index.html | grep -e "build" | sed 's/.*build\/\([0-9]*\)\/download.*/\1/g')
-
-# Get cardano-node latest build version number
-# CARDANO_NODE_LATEST_VERSION=$(curl --silent https://hydra.iohk.io/build/$CARDANO_NODE_LATEST_BUILD | grep -e "<a href=\"https://hydra.iohk.io/build/$CARDANO_NODE_LATEST_BUILD/download/1/cardano-node-" | sed 's/^.*[^0-9]\([0-9]*\.[0-9]*\.[0-9]*\).*$/\1/')
 
 while [[ $# -gt 0 ]]; do
   key="$1"
@@ -55,7 +47,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     -v|--ver)
-      # VERSION="$2"
+      VERSION="$2"
       shift
       ;;
     --bundle)
@@ -100,6 +92,31 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+
+if [ -z $VERSION ]; then 
+VERSION="latest"
+elif [ $VERSION == "1.30.0" ]; then 
+VERSION="1.30.0"
+BINARY_BUILD=7938912
+CONFIG_BUILD_NUMBER=7926804
+elif [ $VERSION == "1.29.0" ]; then 
+VERSION="1.29.0"
+BINARY_BUILD=7408438
+CONFIG_BUILD_NUMBER=7578887
+else
+VERSION="latest"
+fi 
+
+if [ $VERSION == "latest" ]; then 
+# Get config latest build number
+CONFIG_BUILD_NUMBER=$(curl --silent https://hydra.iohk.io/job/Cardano/iohk-nix/cardano-deployment/latest-finished/download/1/index.html | grep -e "build" | sed 's/.*build\/\([0-9]*\)\/download.*/\1/g')
+# Get cardano-node latest build number
+BINARY_BUILD=$(curl --silent https://hydra.iohk.io/job/Cardano/cardano-node/cardano-node-linux/latest-finished/download/1/index.html | grep -e "build" | sed 's/.*build\/\([0-9]*\)\/download.*/\1/g')
+# Get cardano-node latest build version number
+VERSION=$(curl --silent https://hydra.iohk.io/build/$BINARY_BUILD | grep -e "<a href=\"https://hydra.iohk.io/build/$BINARY_BUILD/download/1/cardano-node-" | sed 's/^.*[^0-9]\([0-9]*\.[0-9]*\.[0-9]*\).*$/\1/')
+fi
+
+
 buildCloudConfiguration(){
 NODE_TYPE=$1 # relay | block
 NODE_NETWORK=$NETWORK # testnet | mainnet
@@ -107,8 +124,8 @@ NODE_VERSION=$VERSION # eg 1.29.0
 NODE_HOSTNAME=$HOSTNAME # relay dns hostname
 
 # Should have a map of allowed values based on version
-NODE_BINARY_BUILD=7938912 # for binary 1.30.0
-NODE_CONFIG_BUILD_NUMBER=7926804 # For json configs 1.30.0
+NODE_BINARY_BUILD=$BINARY_BUILD # for binary 1.30.0
+NODE_CONFIG_BUILD_NUMBER=$CONFIG_BUILD_NUMBER # For json configs 1.30.0
 
 SSH_KEY=$SSH_KEY
 SSH_PORT=$SSH_PORT
