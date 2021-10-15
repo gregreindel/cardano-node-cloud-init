@@ -6,7 +6,6 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
 
 BUILD_ID="0"
 
-HOSTNAME=""
 NETWORK="testnet"
 VERSION="latest"
 SSH_KEY=""
@@ -119,9 +118,10 @@ fi
 
 buildCloudConfiguration(){
 NODE_TYPE=$1 # relay | block
+[ ! -z $2 ] && NODE_NUMBER="$2" || NODE_NUMBER="1"
+NODE_HOSTNAME="" # relay dns hostname
 NODE_NETWORK=$NETWORK # testnet | mainnet
 NODE_VERSION=$VERSION # eg 1.29.0
-NODE_HOSTNAME=$HOSTNAME # relay dns hostname
 
 # Should have a map of allowed values based on version
 NODE_BINARY_BUILD=$BINARY_BUILD # for binary 1.30.0
@@ -159,14 +159,20 @@ fi
 
 mkdir -p "$script_dir/out/${BUILD_ID}"
 
-CONFIG_SCRIPT_PATH="$script_dir/out/${BUILD_ID}/${NODE_TYPE}-user-data.yaml"
+if [ "${NODE_NUMBER}" -eq 1 ]; then 
+  NODE_HOSTNAME=$RELAY_HOSTNAME_1
+elif [ "${NODE_NUMBER}" -eq 2 ]; then 
+  NODE_HOSTNAME=$RELAY_HOSTNAME_2
+fi 
+
+CONFIG_SCRIPT_PATH="$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
 
 # Write the header to the main user data file
-echo "$(. "$script_dir/server/init/header.sh")" > "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-user-data.yaml"
+echo "$(. "$script_dir/server/init/header.sh")" > $CONFIG_SCRIPT_PATH
 
 # If not bundling, that means were generating another file. write the header for that
 if [ "$BUNDLE_CONFIG" = "1" ]; then
-  CONFIG_SCRIPT_PATH="$script_dir/out/${BUILD_ID}/${NODE_TYPE}-setup.yaml"
+  CONFIG_SCRIPT_PATH="$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-setup.yaml"
   echo "$(. "$script_dir/server/config/header.sh")" > "$CONFIG_SCRIPT_PATH"
   echo "" >> "$CONFIG_SCRIPT_PATH"
 fi 
@@ -176,10 +182,10 @@ for ELEMENT in "users" "write_files" "runcmd"; do
 
   # Write node user-data init script
   if [ -d "$script_dir/server/init/$ELEMENT" ]; then
-  echo "$ELEMENT:" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-user-data.yaml"
+  echo "$ELEMENT:" >> $CONFIG_SCRIPT_PATH
     for f in `ls -1v $script_dir/server/init/$ELEMENT`; do
-      cat "$script_dir/server/init/$ELEMENT/$f" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-user-data.yaml"
-      echo "" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-user-data.yaml"
+      cat "$script_dir/server/init/$ELEMENT/$f" >> $CONFIG_SCRIPT_PATH
+      echo "" >> $CONFIG_SCRIPT_PATH
     done
   fi
 
@@ -255,14 +261,18 @@ for f in `ls -1v $script_dir/out/${BUILD_ID}`; do
   sed -i '' "s#\${RELAY_NODE_IP_2}#${RELAY_NODE_IP_2}#g" $script_dir/out/$BUILD_ID/$f
 
   sed -i '' "s#\${AUTO_INIT}#${AUTO_INIT}#g" $script_dir/out/$BUILD_ID/$f
+  sed -i '' "s#\${NODE_NUMBER}#${NODE_NUMBER}#g" $script_dir/out/$BUILD_ID/$f
+
+  
 done
 }
 
 
 buildCloudConfiguration "block"
 
+
 buildCloudConfiguration "relay"
 
-# if [ -z $RELAY_NODE_IP_2 ]; then 
-#   buildCloudConfiguration "relay" $RELAY_HOSTNAME_2
-# fi 
+if [ ! -z $RELAY_HOSTNAME_2 ]; then 
+  buildCloudConfiguration "relay" 2
+fi 
