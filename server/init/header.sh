@@ -19,13 +19,13 @@ if [[ ! -z $USE_AWS_CLI ]]; then
 awsPackage="- awscli"
 fi
 
-fqdn="${NODE_NETWORK}-${NODE_TYPE}-${NODE_NUMBER}-v${NODE_VERSION}.${NODE_CONFIG_BUILD_NUMBER}"
+fqdn="${NODE_NETWORK}-${NODE_TYPE}-${NODE_NUMBER}-v${NODE_VERSION}"
 
 echo "
 # Instructions: 
 # 1.) Input this file into the user data field when creating the ${NODE_TYPE} server
 
-fqdn: $fqdn
+fqdn: ${fqdn//./-}
 
 repo_update: true
 repo_upgrade: all

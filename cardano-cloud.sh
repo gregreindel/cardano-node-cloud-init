@@ -159,16 +159,16 @@ fi
 
 mkdir -p "$script_dir/out/${BUILD_ID}"
 
-if [ "${NODE_NUMBER}" -eq 1 ]; then 
+if [ "${NODE_TYPE}" == "relay" ] && [ "${NODE_NUMBER}" -eq 1 ]; then 
   NODE_HOSTNAME=$RELAY_HOSTNAME_1
-elif [ "${NODE_NUMBER}" -eq 2 ]; then 
+elif [ "${NODE_TYPE}" == "relay" ] && [ "${NODE_NUMBER}" -eq 2 ]; then 
   NODE_HOSTNAME=$RELAY_HOSTNAME_2
 fi 
 
 CONFIG_SCRIPT_PATH="$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
 
 # Write the header to the main user data file
-echo "$(. "$script_dir/server/init/header.sh")" > $CONFIG_SCRIPT_PATH
+echo "$(. "$script_dir/server/init/header.sh")" > "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
 
 # If not bundling, that means were generating another file. write the header for that
 if [ "$BUNDLE_CONFIG" = "1" ]; then
@@ -182,10 +182,10 @@ for ELEMENT in "users" "write_files" "runcmd"; do
 
   # Write node user-data init script
   if [ -d "$script_dir/server/init/$ELEMENT" ]; then
-  echo "$ELEMENT:" >> $CONFIG_SCRIPT_PATH
+  echo "$ELEMENT:" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
     for f in `ls -1v $script_dir/server/init/$ELEMENT`; do
-      cat "$script_dir/server/init/$ELEMENT/$f" >> $CONFIG_SCRIPT_PATH
-      echo "" >> $CONFIG_SCRIPT_PATH
+      cat "$script_dir/server/init/$ELEMENT/$f" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
+      echo "" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
     done
   fi
 
