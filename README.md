@@ -43,8 +43,8 @@ Generate Cloud-init YAML files.
 --ssh       SSH key. Required so you can connect to the server.  
 --ssh-p     SSH port. Defaults to 22.  
 -b          Whether or not to bundle the config/setup scripts with the basic install user data for the output.  
--bnswap     Number of bytes for block node swap file. Defaults to 0, which wil disable the swap file.
--rnswap     Number of bytes for relay node swap file. Defaults to 0, which wil disable the swap file.
+-bnswap     Number of bytes for block node swap file. Defaults to 0, which will disable the swap file.
+-rnswap     Number of bytes for relay node swap file. Defaults to 0, which will disable the swap file.
 ```
 Outputs to /out/$id/file-name.yaml
 
