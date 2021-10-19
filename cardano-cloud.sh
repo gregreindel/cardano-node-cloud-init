@@ -177,45 +177,64 @@ if [ "$BUNDLE_CONFIG" = "1" ]; then
   echo "" >> "$CONFIG_SCRIPT_PATH"
 fi 
 
+if [ "${NODE_TYPE}" == "dashboard" ]; then 
+serverTypePath="server/init/dashboard"
+else 
+serverTypePath="server/init/node"
+fi 
+
 # loop through the supported steps
 for ELEMENT in "users" "write_files" "runcmd"; do
 
   # Write node user-data init script
-  if [ -d "$script_dir/server/init/$ELEMENT" ]; then
-  echo "$ELEMENT:" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
-    for f in `ls -1v $script_dir/server/init/$ELEMENT`; do
-      cat "$script_dir/server/init/$ELEMENT/$f" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
+  if [ -d "$script_dir/${serverTypePath}/$ELEMENT" ] || [ -d "$script_dir/server/init/shared/$ELEMENT" ]; then
+    echo "$ELEMENT:" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
+    if [ -d "$script_dir/server/init/shared/$ELEMENT" ]; then
+      for f in `ls -1v $script_dir/server/init/shared/$ELEMENT`; do
+        if [ "${f: -3}" == ".sh" ]; then
+          echo "$(. "$script_dir/server/init/shared/$ELEMENT/$f")" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
+        else 
+          cat "$script_dir/server/init/shared/$ELEMENT/$f" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
+        fi
+        echo "" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
+      done
+    fi
+    for f in `ls -1v $script_dir/${serverTypePath}/$ELEMENT`; do
+      if [ "${f: -3}" == ".sh" ]; then
+        echo "$(. "$script_dir/${serverTypePath}/$ELEMENT/$f")" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
+      else 
+        cat "$script_dir/${serverTypePath}/$ELEMENT/$f" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
+      fi
       echo "" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
     done
   fi
 
-  # if we're writing 2 files and a step exists, the file needs the step keyword defined
-  if [ -d "$script_dir/server/config/${NODE_TYPE}/$ELEMENT" ] || 
-     [ -d "$script_dir/server/config/shared/$ELEMENT" ]; then
-    if [ "$BUNDLE_CONFIG" = "1" ]; then
+
+  if [ "${NODE_TYPE}" == "block" ] || [ "${NODE_TYPE}" == "relay" ]; then 
+    # if we're writing 2 files and a step exists, the file needs the step keyword defined
+    if [ -d "$script_dir/server/config/${NODE_TYPE}/$ELEMENT" ] || 
+      [ -d "$script_dir/server/config/shared/$ELEMENT" ]; then
+      if [ "$BUNDLE_CONFIG" = "1" ]; then
         echo "$ELEMENT:" >> $CONFIG_SCRIPT_PATH
-    fi 
-  fi
+      fi 
+    fi
 
-  # Print out all the instructions from the node-specific template files
-  if [ -d "$script_dir/server/config/${NODE_TYPE}/$ELEMENT" ]; then
-    for f in `ls -1v "$script_dir/server/config/${NODE_TYPE}/$ELEMENT"`; do
-      cat "$script_dir/server/config/${NODE_TYPE}/$ELEMENT/$f" >> "$CONFIG_SCRIPT_PATH"
-      echo "" >> "$CONFIG_SCRIPT_PATH"
-    done
-  fi
+    # Print out all the instructions from the node-specific template files
+    if [ -d "$script_dir/server/config/${NODE_TYPE}/$ELEMENT" ]; then
+      for f in `ls -1v "$script_dir/server/config/${NODE_TYPE}/$ELEMENT"`; do
+        cat "$script_dir/server/config/${NODE_TYPE}/$ELEMENT/$f" >> "$CONFIG_SCRIPT_PATH"
+        echo "" >> "$CONFIG_SCRIPT_PATH"
+      done
+    fi
 
-  # Print out all the instructions from the node-shared template files
-  if [ -d "$script_dir/server/config/shared/$ELEMENT" ]; then
-    for f in `ls -1v "$script_dir/server/config/shared/$ELEMENT"`; do
-      cat "$script_dir/server/config/shared/$ELEMENT/$f" >> "$CONFIG_SCRIPT_PATH"
-      echo "" >> "$CONFIG_SCRIPT_PATH"
-    done
-  fi
-
-  if [ $ELEMENT == "write_files" ]; then 
-    echo "$(. "$script_dir/server/init/config.sh")" >> "$CONFIG_SCRIPT_PATH"
-  fi
+    # Print out all the instructions from the node-shared template files
+    if [ -d "$script_dir/server/config/shared/$ELEMENT" ]; then
+      for f in `ls -1v "$script_dir/server/config/shared/$ELEMENT"`; do
+        cat "$script_dir/server/config/shared/$ELEMENT/$f" >> "$CONFIG_SCRIPT_PATH"
+        echo "" >> "$CONFIG_SCRIPT_PATH"
+      done
+    fi
+  fi 
 
 # Done loop through the supported steps
 done
@@ -267,12 +286,6 @@ for f in `ls -1v $script_dir/out/${BUILD_ID}`; do
 done
 }
 
-
 buildCloudConfiguration "block"
-
-
 buildCloudConfiguration "relay"
-
-if [ ! -z $RELAY_HOSTNAME_2 ]; then 
-  buildCloudConfiguration "relay" 2
-fi 
+buildCloudConfiguration "dashboard"

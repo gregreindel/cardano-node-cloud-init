@@ -2,9 +2,9 @@
   permissions: "550"
   content: |
     [sshd]
-    enabled = true
-    port = ${SSH_PORT}
-    filter = sshd
-    logpath = /var/log/auth.log
-    maxretry = 3
+    enabled=true
+    port=${SSH_PORT}
+    filter=sshd
+    logpath=/var/log/auth.log
+    maxretry=3
     # ignoreip = <list of whitelisted IP address>

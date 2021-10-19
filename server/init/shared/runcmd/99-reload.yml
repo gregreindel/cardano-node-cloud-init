@@ -1,0 +1,5 @@
+- sudo systemctl enable fail2ban
+- sudo systemctl restart fail2ban
+- sudo systemctl enable chronyd.service
+- sudo systemctl restart chronyd.service
+- sudo systemctl daemon-reload

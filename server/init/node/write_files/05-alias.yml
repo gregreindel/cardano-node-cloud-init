@@ -32,3 +32,12 @@
     [[ -t 2 ]] && [[ -z "${NO_COLOR-}" ]] && N='\033[0m' R='\033[0;31m' G='\033[0;32m' || N='' R='' G=''
     echo >&2 -e "${1-}"
     }
+
+    LOG_TARGET=test.log
+    if [[ ! -f "$LOG_TARGET" ]] ;then
+        touch "$LOG_TARGET"
+    fi
+    LOG() {
+        date_time=$(date -u +"%Y/%m/%dT%H:%M:%SZ")
+        echo "[$date_time] $1" | tee -a "$LOG_TARGET"
+    }

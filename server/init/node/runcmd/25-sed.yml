@@ -1,0 +1,2 @@
+- sed -i ${CONFIG_CONFIG} -e "s#TraceBlockFetchDecisions\":\ false#TraceBlockFetchDecisions\":\ true#g"
+- sed -i ${CONFIG_CONFIG} -e "s#127.0.0.1#0.0.0.0#g"

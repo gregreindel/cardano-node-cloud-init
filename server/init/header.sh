@@ -11,12 +11,34 @@ fi
 
 if [ ${NODE_TYPE} == "block" ]; then 
 NODE_SWAP_SIZE=${BLOCK_NODE_SWAP_SIZE}
-else 
+
+elif  [ ${NODE_TYPE} == "relay" ]; then 
 NODE_SWAP_SIZE=${RELAY_NODE_SWAP_SIZE}
 fi 
 
-if [[ ! -z $USE_AWS_CLI ]]; then
-awsPackage="- awscli"
+packagesToInstall="packages:
+  - fail2ban
+  - git
+  - jq
+  - zip
+  - chrony
+  - rsync
+  - htop
+  - curl
+  - wget
+  - net-tools"
+
+if [ ${NODE_TYPE} == "dashboard" ]; then
+packagesToInstall="$packagesToInstall
+  - prometheus"
+else 
+packagesToInstall="$packagesToInstall
+  - prometheus-node-exporter"
+fi
+
+if [[ ! -z ${USE_AWS_CLI} ]]; then
+packagesToInstall="$packagesToInstall
+  - awscli"
 fi
 
 fqdn="${NODE_NETWORK}-${NODE_TYPE}-${NODE_NUMBER}-v${NODE_VERSION}"
@@ -30,18 +52,7 @@ fqdn: ${fqdn//./-}
 repo_update: true
 repo_upgrade: all
 
-packages:
-  - fail2ban
-  - git
-  - jq
-  - zip
-  - chrony
-  - rsync
-  - htop
-  - curl
-  - wget
-  - net-tools
-  $awsPackage
+$packagesToInstall
 
 power_state:
   mode: reboot
@@ -50,7 +61,7 @@ power_state:
 
 echo "
 mounts:
-- [ tmpfs, /run/shm, \"tmpfs\", \"o,noexec,nosuid\", \"0\", \"0\" ]
+- [ none, /run/shm, \"tmpfs\", \"defaults,ro\", \"0\", \"0\" ]
 "
 
 if [[ "${NODE_SWAP_SIZE}" -gt 0 ]]; then 
