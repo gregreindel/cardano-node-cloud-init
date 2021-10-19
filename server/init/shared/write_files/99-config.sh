@@ -1,4 +1,4 @@
-blockIP=${BLOCK_NODE_IP}
+blockIP=${BLOCK_NODE_IP_1}
 
 relayIPs=$(echo [] | jq)
 for host in ${RELAY_NODE_IP_1} ${RELAY_NODE_IP_2}; do

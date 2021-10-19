@@ -1,1 +1,0 @@
-- sed -i ${CONFIG_CONFIG} -e "s/TraceMempool\":\ true/TraceMempool\":\ false/g"

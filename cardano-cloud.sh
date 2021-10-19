@@ -6,6 +6,8 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
 
 BUILD_ID="0"
 
+OUTPUT_YAML_TYPE=""
+
 NETWORK="testnet"
 VERSION="latest"
 SSH_KEY=""
@@ -24,8 +26,6 @@ RELAY_HOSTNAME_2=""
 
 AUTO_INIT="no"
 
-
-
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
@@ -37,7 +37,7 @@ while [[ $# -gt 0 ]]; do
       NETWORK="$2"
       shift
       ;;
-    -ssh|--ssh)
+    -ssh|--ssh-key)
       SSH_KEY="$2"
       shift
       ;;
@@ -85,12 +85,20 @@ while [[ $# -gt 0 ]]; do
       AUTO_INIT="yes"
       shift
       ;;
+    --output)
+      OUTPUT_YAML_TYPE="$2"
+      shift
+      ;;
     *) # unknown option
       shift
       ;;
   esac
 done
 
+if [ ! $OUTPUT_YAML_TYPE == "block" ] && [ ! $OUTPUT_YAML_TYPE == "relay" ] && [ ! $OUTPUT_YAML_TYPE == "dashboard" ]; then 
+echo "Invalid output."
+return
+fi 
 
 if [ -z $VERSION ]; then 
 VERSION="latest"
@@ -123,14 +131,12 @@ NODE_HOSTNAME="" # relay dns hostname
 NODE_NETWORK=$NETWORK # testnet | mainnet
 NODE_VERSION=$VERSION # eg 1.29.0
 
-# Should have a map of allowed values based on version
-NODE_BINARY_BUILD=$BINARY_BUILD # for binary 1.30.0
-NODE_CONFIG_BUILD_NUMBER=$CONFIG_BUILD_NUMBER # For json configs 1.30.0
+NODE_BINARY_BUILD=$BINARY_BUILD
+NODE_CONFIG_BUILD_NUMBER=$CONFIG_BUILD_NUMBER
 
 SSH_KEY=$SSH_KEY
 SSH_PORT=$SSH_PORT
 
-# Do not change below
 NODE_PORT=6000
 NODE_USER=cardano
 NODE_HOME=/opt/cardano-node
@@ -236,7 +242,6 @@ for ELEMENT in "users" "write_files" "runcmd"; do
     fi
   fi 
 
-# Done loop through the supported steps
 done
 
 # if were writing 2 files, one will NOT be executed on create. so it doesnt support runcmd. 
@@ -281,11 +286,7 @@ for f in `ls -1v $script_dir/out/${BUILD_ID}`; do
 
   sed -i '' "s#\${AUTO_INIT}#${AUTO_INIT}#g" $script_dir/out/$BUILD_ID/$f
   sed -i '' "s#\${NODE_NUMBER}#${NODE_NUMBER}#g" $script_dir/out/$BUILD_ID/$f
-
-  
 done
 }
 
-buildCloudConfiguration "block"
-buildCloudConfiguration "relay"
-buildCloudConfiguration "dashboard"
+buildCloudConfiguration $OUTPUT_YAML_TYPE
