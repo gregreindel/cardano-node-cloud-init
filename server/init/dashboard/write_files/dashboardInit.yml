@@ -1,4 +1,0 @@
-- path: ${NODE_SCRIPTS_PATH}/init.sh
-  permissions: "750"
-  content: |
-    #!/bin/bash

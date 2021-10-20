@@ -6,7 +6,9 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
 
 BUILD_ID="0"
 
-OUTPUT_YAML_TYPE=""
+OUTPUT_DASHBOARD_YAML="no"
+OUTPUT_RELAY_YAML="no"
+OUTPUT_BLOCK_YAML="no"
 
 NETWORK="testnet"
 VERSION="latest"
@@ -85,8 +87,16 @@ while [[ $# -gt 0 ]]; do
       AUTO_INIT="yes"
       shift
       ;;
-    --output)
-      OUTPUT_YAML_TYPE="$2"
+    --output-dashboard)
+      OUTPUT_DASHBOARD_YAML="yes"
+      shift
+      ;;
+    --output-relay)
+      OUTPUT_RELAY_YAML="yes"
+      shift
+      ;;
+    --output-block)
+      OUTPUT_BLOCK_YAML="yes"
       shift
       ;;
     *) # unknown option
@@ -94,11 +104,6 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
-
-if [ ! $OUTPUT_YAML_TYPE == "block" ] && [ ! $OUTPUT_YAML_TYPE == "relay" ] && [ ! $OUTPUT_YAML_TYPE == "dashboard" ]; then 
-echo "Invalid output."
-return
-fi 
 
 if [ -z $VERSION ]; then 
 VERSION="latest"
@@ -216,7 +221,7 @@ for ELEMENT in "users" "write_files" "runcmd"; do
   fi
 
 
-  if [ "${NODE_TYPE}" == "block" ] || [ "${NODE_TYPE}" == "relay" ]; then 
+  # if [ "${NODE_TYPE}" == "block" ] || [ "${NODE_TYPE}" == "relay" ]; then 
     # if we're writing 2 files and a step exists, the file needs the step keyword defined
     if [ -d "$script_dir/server/config/${NODE_TYPE}/$ELEMENT" ] || 
       [ -d "$script_dir/server/config/shared/$ELEMENT" ]; then
@@ -240,7 +245,7 @@ for ELEMENT in "users" "write_files" "runcmd"; do
         echo "" >> "$CONFIG_SCRIPT_PATH"
       done
     fi
-  fi 
+  # fi 
 
 done
 
@@ -289,4 +294,14 @@ for f in `ls -1v $script_dir/out/${BUILD_ID}`; do
 done
 }
 
-buildCloudConfiguration $OUTPUT_YAML_TYPE
+if [ $OUTPUT_DASHBOARD_YAML == "yes" ]; then 
+buildCloudConfiguration "dashboard"
+fi 
+
+if [ $OUTPUT_RELAY_YAML == "yes" ]; then 
+buildCloudConfiguration "relay"
+fi 
+
+if [ $OUTPUT_BLOCK_YAML == "yes" ]; then 
+buildCloudConfiguration "block"
+fi 

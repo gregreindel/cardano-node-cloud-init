@@ -1,0 +1,5 @@
+
+- wget -O /var/lib/grafana/dashboards/Pool/SNSKY_Dashboard_v2.json https://raw.githubusercontent.com/sandy4de/SNSKY/main/SNSKY_Dashboard_v2.json
+- sudo -i /var/lib/grafana/dashboards/Pool/SNSKY_Dashboard_v2.json -e "s#SNSKY Homepage#New Pool#g"
+- sudo -i /var/lib/grafana/dashboards/Pool/SNSKY_Dashboard_v2.json -e "s#https://sanskys.de##g"
+

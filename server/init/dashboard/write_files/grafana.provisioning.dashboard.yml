@@ -1,0 +1,11 @@
+- path: /etc/grafana/provisioning/dashboards/prometheus.yaml
+  permissions: "750"
+  content: |
+    apiVersion: 1
+
+    providers:
+      - name: Default
+        folder: Pool
+        type: file
+        options:
+          path: /var/lib/grafana/dashboards
