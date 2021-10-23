@@ -18,7 +18,7 @@ hostname=${NODE_HOSTNAME}
 - path: ${NODE_HOME}/.config.json
   permissions: \"750\"
   content: |
-    { \"extraParameters\": \"\", \"blockIP\": \"${blockIP}\", \"hostname\": \"$hostname\" }
+    { \"extraParameters\": \"\", \"blockIP\": \"${blockIP}\", \"relayIPs\": ${relayIPs}, \"hostname\": \"$hostname\" }
 "
 
 [ ${NODE_TYPE} == "dashboard" ] && echo "

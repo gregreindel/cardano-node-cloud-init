@@ -27,6 +27,7 @@ RELAY_HOSTNAME_1=""
 RELAY_HOSTNAME_2=""
 
 AUTO_INIT="no"
+CUSTOM_DB_PATH=""
 
 while [[ $# -gt 0 ]]; do
   key="$1"
@@ -99,6 +100,11 @@ while [[ $# -gt 0 ]]; do
       OUTPUT_BLOCK_YAML="yes"
       shift
       ;;
+    --database-path)
+      CUSTOM_DB_PATH="$2"
+      shift
+      ;;
+      
     *) # unknown option
       shift
       ;;
@@ -147,7 +153,7 @@ NODE_USER=cardano
 NODE_HOME=/opt/cardano-node
 
 NODE_CONFIG_PATH="${NODE_HOME}/config"
-NODE_DB_PATH="${NODE_HOME}/db"
+[ ! -z $CUSTOM_DB_PATH ] && NODE_DB_PATH=$CUSTOM_DB_PATH || NODE_DB_PATH="${NODE_HOME}/db"
 NODE_LOG_PATH="${NODE_HOME}/log"
 NODE_SOCKET_PATH="${NODE_DB_PATH}/socket"
 NODE_PRIVATE_PATH="${NODE_HOME}/private"
@@ -176,16 +182,21 @@ elif [ "${NODE_TYPE}" == "relay" ] && [ "${NODE_NUMBER}" -eq 2 ]; then
   NODE_HOSTNAME=$RELAY_HOSTNAME_2
 fi 
 
-CONFIG_SCRIPT_PATH="$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
+[ "$BUNDLE_CONFIG" = "1" ] && [ ! "$NODE_TYPE" == "dashboard" ] && filename="user-data" || filename="user-data-combined"
+[ "$NODE_TYPE" == "dashboard" ] && filenamePart1="${NODE_TYPE}" || filenamePart1="${NODE_TYPE}-${NODE_NUMBER}"
+[ "$NODE_TYPE" == "dashboard" ] && filename="user-data" || filename=$filename
+
+USER_DATA_YAML_OUT="$script_dir/out/${BUILD_ID}/$filenamePart1-${filename}.yaml"
 
 # Write the header to the main user data file
-echo "$(. "$script_dir/server/init/header.sh")" > "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
+echo "$(. "$script_dir/server/init/header.sh")" > $USER_DATA_YAML_OUT
 
+SETUP_SCRIPTS_YAML_OUT="$script_dir/out/${BUILD_ID}/$filenamePart1-${filename}.yaml"
 # If not bundling, that means were generating another file. write the header for that
-if [ "$BUNDLE_CONFIG" = "1" ]; then
-  CONFIG_SCRIPT_PATH="$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-setup.yaml"
-  echo "$(. "$script_dir/server/config/header.sh")" > "$CONFIG_SCRIPT_PATH"
-  echo "" >> "$CONFIG_SCRIPT_PATH"
+if [ "$BUNDLE_CONFIG" = "1" ] && [ ! "$NODE_TYPE" == "dashboard" ]; then
+  SETUP_SCRIPTS_YAML_OUT="$script_dir/out/${BUILD_ID}/$filenamePart1-setup.yaml"
+  echo "$(. "$script_dir/server/config/header.sh")" > "$SETUP_SCRIPTS_YAML_OUT"
+  echo "" >> "$SETUP_SCRIPTS_YAML_OUT"
 fi 
 
 if [ "${NODE_TYPE}" == "dashboard" ]; then 
@@ -199,24 +210,24 @@ for ELEMENT in "users" "write_files" "runcmd"; do
 
   # Write node user-data init script
   if [ -d "$script_dir/${serverTypePath}/$ELEMENT" ] || [ -d "$script_dir/server/init/shared/$ELEMENT" ]; then
-    echo "$ELEMENT:" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
+    echo "$ELEMENT:" >> $USER_DATA_YAML_OUT
     if [ -d "$script_dir/server/init/shared/$ELEMENT" ]; then
       for f in `ls -1v $script_dir/server/init/shared/$ELEMENT`; do
         if [ "${f: -3}" == ".sh" ]; then
-          echo "$(. "$script_dir/server/init/shared/$ELEMENT/$f")" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
+          echo "$(. "$script_dir/server/init/shared/$ELEMENT/$f")" >> $USER_DATA_YAML_OUT
         else 
-          cat "$script_dir/server/init/shared/$ELEMENT/$f" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
+          cat "$script_dir/server/init/shared/$ELEMENT/$f" >> $USER_DATA_YAML_OUT
         fi
-        echo "" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
+        echo "" >> $USER_DATA_YAML_OUT
       done
     fi
     for f in `ls -1v $script_dir/${serverTypePath}/$ELEMENT`; do
       if [ "${f: -3}" == ".sh" ]; then
-        echo "$(. "$script_dir/${serverTypePath}/$ELEMENT/$f")" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
+        echo "$(. "$script_dir/${serverTypePath}/$ELEMENT/$f")" >> $USER_DATA_YAML_OUT
       else 
-        cat "$script_dir/${serverTypePath}/$ELEMENT/$f" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
+        cat "$script_dir/${serverTypePath}/$ELEMENT/$f" >> $USER_DATA_YAML_OUT
       fi
-      echo "" >> "$script_dir/out/${BUILD_ID}/${NODE_TYPE}-${NODE_NUMBER}-user-data.yaml"
+      echo "" >> $USER_DATA_YAML_OUT
     done
   fi
 
@@ -225,24 +236,24 @@ for ELEMENT in "users" "write_files" "runcmd"; do
     # if we're writing 2 files and a step exists, the file needs the step keyword defined
     if [ -d "$script_dir/server/config/${NODE_TYPE}/$ELEMENT" ] || 
       [ -d "$script_dir/server/config/shared/$ELEMENT" ]; then
-      if [ "$BUNDLE_CONFIG" = "1" ]; then
-        echo "$ELEMENT:" >> $CONFIG_SCRIPT_PATH
+      if [ "$BUNDLE_CONFIG" = "1" ] && [ ! "$NODE_TYPE" == "dashboard" ]; then
+        echo "$ELEMENT:" >> $SETUP_SCRIPTS_YAML_OUT
       fi 
     fi
 
     # Print out all the instructions from the node-specific template files
     if [ -d "$script_dir/server/config/${NODE_TYPE}/$ELEMENT" ]; then
       for f in `ls -1v "$script_dir/server/config/${NODE_TYPE}/$ELEMENT"`; do
-        cat "$script_dir/server/config/${NODE_TYPE}/$ELEMENT/$f" >> "$CONFIG_SCRIPT_PATH"
-        echo "" >> "$CONFIG_SCRIPT_PATH"
+        cat "$script_dir/server/config/${NODE_TYPE}/$ELEMENT/$f" >> "$SETUP_SCRIPTS_YAML_OUT"
+        echo "" >> "$SETUP_SCRIPTS_YAML_OUT"
       done
     fi
 
     # Print out all the instructions from the node-shared template files
     if [ -d "$script_dir/server/config/shared/$ELEMENT" ]; then
       for f in `ls -1v "$script_dir/server/config/shared/$ELEMENT"`; do
-        cat "$script_dir/server/config/shared/$ELEMENT/$f" >> "$CONFIG_SCRIPT_PATH"
-        echo "" >> "$CONFIG_SCRIPT_PATH"
+        cat "$script_dir/server/config/shared/$ELEMENT/$f" >> "$SETUP_SCRIPTS_YAML_OUT"
+        echo "" >> "$SETUP_SCRIPTS_YAML_OUT"
       done
     fi
   # fi 
