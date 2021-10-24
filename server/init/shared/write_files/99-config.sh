@@ -1,9 +1,11 @@
 blockIP=${BLOCK_NODE_IP_1}
 
-relayIPs=$(echo [] | jq)
+items=
 for host in ${RELAY_NODE_IP_1} ${RELAY_NODE_IP_2}; do
-relayIPs=$( echo $relayIPs | jq -c '. += ["'${host}'"]')
+items+="\"${host}\""
 done 
+items=$(sed 's/""/","/g' <<< "$items")
+relayIPs=[$items]
 
 hostname=${NODE_HOSTNAME}
 
