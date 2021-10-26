@@ -19,9 +19,6 @@ Once complete, users will be able to:
 Another goal of this project ia to make it easier for new stake pool operators to get their first pool online.
 
 ## To Do - coming soon
-- Allow passing in block & relay IP's into user data to help with re-deploying a pool that was already setup.
-- Allow passing other settings into config which will make for less questions during node configuration.
-- Add utility to fetch db copy from volume.
 - UI for managing pool infrastructure.
 - Look into platform compatibility with Google Cloud and any other provider-specific enhancements.
 
@@ -67,22 +64,29 @@ Configuration
 
 Block Node Setup  
 |- /home/cardano/.environment-block.sh  
-|- /opt/cardano-node/scripts/init/create.sh  
-|- /opt/cardano-node/scripts/init/registerAddress  
-|- /opt/cardano-node/scripts/init/registerKeys.sh  
-|- /opt/cardano-node/scripts/init/registerPool.sh  
-|- /opt/cardano-node/scripts/init/registerPoolGetId.sh  
-|- /opt/cardano-node/scripts/init/registerPoolPledge.sh  
-|- /opt/cardano-node/scripts/init/registerTopology.sh   
-|- /opt/cardano-node/scripts/init/s3Sync.sh  
-|- /opt/cardano-node/scripts/getTxInfo.sh  
+|- /home/cardano/scripts/getTxInfo.sh
+|- /home/cardano/scripts/task/rotateKES.sh
+|- /home/cardano/scripts/task/regeneratePoolCertificate.sh
+|- /home/cardano/scripts/init/create.sh
+|- /home/cardano/scripts/init/s3Sync.sh
+|- /home/cardano/scripts/init/registerAddress.sh
+|- /home/cardano/scripts/init/registerKeys.sh
+|- /home/cardano/scripts/init/registerTopology.sh
+|- /home/cardano/scripts/init/registerPoolGetId.sh
+|- /home/cardano/scripts/init/manualSetupHelper.sh
+|- /home/cardano/scripts/utils/generatePoolCertificate.sh
+|- /home/cardano/scripts/utils/generatePoolCertificateTransaction.sh
+|- /home/cardano/scripts/utils/generatePoolMeta.sh
+|- /home/cardano/scripts/utils/verifyPoolMeta.sh
+
 
 Relay Node Setup  
 |- /home/cardano/.environment-relay.sh  
+|- /opt/cardano-node/scripts/topologyPull.sh  
 |- /opt/cardano-node/scripts/init/create.sh  
 |- /opt/cardano-node/scripts/init/registerTopology.sh   
 |- /opt/cardano-node/scripts/init/topologyUpdater.sh  
-|- /opt/cardano-node/scripts/topologyPull.sh  
+|- /opt/cardano-node/scripts/init/manualSetupHelper.sh
 
 
 ## Useful Paths
