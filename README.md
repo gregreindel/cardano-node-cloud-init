@@ -27,31 +27,36 @@ Another goal of this project ia to make it easier for new stake pool operators t
 # Usage
 Generate Cloud-init YAML files. 
 
-
+**Example usage**
 ```
-. /path/to/cardano-cloud.sh -b --ver "1.29.0" --network "<testnet|mainnet>" --ssh "<ssh_key>"
+. /path/to/cardano-cloud.sh --version "1.30.0" --network "<testnet|mainnet>" --ssh-key "<ssh_key> --bundle"
 ```
 
-
+**Basic Options**
 ```
--id        Some unique id. You can use uuidgen if available. Or just pass some string.
---network   Whether using testnet or mainnet. Required.  
---version       Cardano-node version. Defaults to latest (1.29.0).  
---ssh-key       SSH key. Required so you can connect to the server.  
---ssh-port     SSH port. Defaults to 22.  
+-id                 Some unique id. You can use uuidgen if available. Or just pass some string.
+--network           Whether using testnet or mainnet. Required.  
+--version           Cardano-node version. Defaults to latest (1.29.0).  
+--ssh-key           SSH key. Required so you can connect to the server.  
+--ssh-port          SSH port. Defaults to 22.  
+--bundle            (flag) Whether or not to bundle the config/setup scripts with the basic install user data for the output.  
+--output-dashboard  (flag) If you want the output to include YAML for a monitoring dashboard node. 
+--output-relay      (flag) If you want the output to include YAML for relay node(s). 
+--output-block      (flag) If you want the output to include YAML for block node. 
+```
+
+**Advanced Options** - Use these in addition with the basic options as needed. These are all optional, and most useful when re-deploying an existing pool
+```
 --bnswap     Number of bytes for block node swap file. Defaults to 0, which will disable the swap file.
 --rnswap     Number of bytes for relay node swap file. Defaults to 0, which will disable the swap file.
---bnip1      IP address of the block node. Recommend a floating IP. Optional - useful when re-deploying an existing pool.
---rnip1      IP address of the relay 1 node. Recommend a floating IP. Optional - useful when re-deploying an existing pool.
---rnip2      IP address of the relay 2 node. Recommend a floating IP. Optional - useful when re-deploying an existing pool.
---rnhost1    DNS hostname for relay node 1. Optional - useful when re-deploying an existing pool.
---rnhost2    DNS hostname for relay node 2. Optional - useful when re-deploying an existing pool.
---bundle       (flag) Whether or not to bundle the config/setup scripts with the basic install user data for the output.  
---output-dashboard  (flag) If you want the output to include YAML for a monitoring dashboard node. 
---output-relay    (flag) If you want the output to include YAML for relay node(s). 
---output-block    (flag) If you want the output to include YAML for block node. 
+--bnip1      IP address of the block node. Recommend a floating IP. Optional. Must be a valid IPv4 address.
+--rnip1      IP address of the relay 1 node. Recommend a floating IP. Optional. Must be a valid IPv4 address.
+--rnip2      IP address of the relay 2 node. Recommend a floating IP. Optional. Must be a valid IPv4 address.
+--rnhost1    DNS hostname for relay node 1. Optional. Must be a valid hostname without a protocol.
+--rnhost2    DNS hostname for relay node 2. Optional. Must be a valid hostname without a protocol.
 --auto-init  (flag) Pass flag to tell setup scripts to run directly after the node setup. Can only be used when re-deploying an existing pool.
 ```
+
 Outputs to /out/$id/file-name.yaml
 
 ----------------
