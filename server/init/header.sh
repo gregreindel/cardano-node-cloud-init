@@ -48,22 +48,17 @@ echo "
 # 1.) Input this file into the user data field when creating the ${NODE_TYPE} server
 
 fqdn: ${fqdn//./-}
-
 repo_update: true
 repo_upgrade: all
-
 $packagesToInstall
-
 power_state:
   mode: reboot
   condition: True
 "
-
 echo "
 mounts:
 - [ none, /run/shm, \"tmpfs\", \"defaults,ro\", \"0\", \"0\" ]
 "
-
 if [[ "${NODE_SWAP_SIZE}" -gt 0 ]]; then 
 echo "
 swap:

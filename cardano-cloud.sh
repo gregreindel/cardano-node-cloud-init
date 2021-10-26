@@ -211,6 +211,7 @@ for ELEMENT in "users" "write_files" "runcmd"; do
   # Write node user-data init script
   if [ -d "$script_dir/${serverTypePath}/$ELEMENT" ] || [ -d "$script_dir/server/init/shared/$ELEMENT" ]; then
     echo "$ELEMENT:" >> $USER_DATA_YAML_OUT
+    echo "## Start $ELEMENT ##" >> $USER_DATA_YAML_OUT
     if [ -d "$script_dir/server/init/shared/$ELEMENT" ]; then
       for f in `ls -1v $script_dir/server/init/shared/$ELEMENT`; do
         if [ "${f: -3}" == ".sh" ]; then
@@ -257,7 +258,7 @@ for ELEMENT in "users" "write_files" "runcmd"; do
       done
     fi
   # fi 
-
+    echo "## End $ELEMENT ##" >> $SETUP_SCRIPTS_YAML_OUT
 done
 
 # if were writing 2 files, one will NOT be executed on create. so it doesnt support runcmd. 
