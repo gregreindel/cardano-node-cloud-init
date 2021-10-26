@@ -32,7 +32,7 @@ CUSTOM_DB_PATH=""
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
-    -id)
+    -id|--id)
       BUILD_ID="$2"
       shift
       ;;
@@ -48,7 +48,7 @@ while [[ $# -gt 0 ]]; do
       SSH_PORT="$2"
       shift
       ;;
-    -v|--ver)
+    -v|--version)
       VERSION="$2"
       shift
       ;;
