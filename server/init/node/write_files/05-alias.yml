@@ -33,7 +33,7 @@
     echo >&2 -e "${1-}"
     }
 
-    LOG_TARGET=test.log
+    LOG_TARGET=/var/log/cnci-info.log
     if [[ ! -f "$LOG_TARGET" ]] ;then
         touch "$LOG_TARGET"
     fi
