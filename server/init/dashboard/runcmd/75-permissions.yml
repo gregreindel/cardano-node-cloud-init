@@ -1,0 +1,4 @@
+- sudo chown ${NODE_USER}:${NODE_USER} ${NODE_HOME} -R
+- sudo mv /run/tmp/.environment.sh /home/${NODE_USER}/.environment.sh
+- sudo chown ${NODE_USER}:${NODE_USER} /home/${NODE_USER} -R
+- echo "source .environment.sh" >> /home/${NODE_USER}/.bashrc

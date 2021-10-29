@@ -1,0 +1,19 @@
+- path: ${NODE_SCRIPTS_PATH}/cleanFirewallForPort.sh
+  permissions: "750"
+  content: |
+    #!/bin/bash
+
+    if [ -z $1 ]; then
+      return
+    fi
+
+    run=true
+    while $run; do
+    rules=$(sudo ufw status numbered | grep $1)
+    if [ -z "$rules" ]; then
+    run=false
+    else
+    ruleNumber=$(sudo ufw status numbered | grep $1 | grep -Po "(?<=\[).*?(?=\])" | head -n 1)
+    echo "y" | sudo ufw delete $ruleNumber
+    fi
+    done

@@ -1,0 +1,46 @@
+- path: ${NODE_SCRIPTS_PATH}/init/create.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    # If no block IP in the config, ask for it
+    if [ -z $(cat ${NODE_HOME}/.config.json | jq -r '.blockIP') ]; then
+      echo "Enter block node IP address."
+      read _BLOCK_NODE_IP
+      if [ ! -z $_BLOCK_NODE_IP ]; then
+        . ${NODE_SCRIPTS_PATH}/updateConfigIP.sh "add" $_BLOCK_NODE_IP "block"
+      fi
+    fi
+
+    if [[ $(cat ${NODE_HOME}/.config.json | jq '.relayIPs | length') -eq 0 ]]; then
+      _RELAY_NODE_IP_1=""
+      RUN_RELAY_NODE_IP_1=true
+      while $RUN_RELAY_NODE_IP_1
+      do
+      if [ ! -z $_RELAY_NODE_IP_1 ]; then
+      . ${NODE_SCRIPTS_PATH}/updateConfigIP.sh "add" $_RELAY_NODE_IP_1 "relay"
+        RUN_RELAY_NODE_IP_1=false
+      else 
+        echo "Enter relay 1 IP address."
+        read _RELAY_NODE_IP_1
+      fi 
+      done
+    fi
+
+    if [[ $(cat ${NODE_HOME}/.config.json | jq '.relayIPs | length') -eq 1 ]]; then
+      echo "Enter relay 2 IP address."
+      read _RELAY_NODE_IP_2
+      if [ ! -z $_RELAY_NODE_IP_2 ]; then
+        . ${NODE_SCRIPTS_PATH}/updateConfigIP.sh "add" $_RELAY_NODE_IP_2 "relay"
+      fi
+    fi
+
+    if [[ $(cat ${NODE_HOME}/.config.json | jq '.whitelistAccessIps | length') -eq 0 ]]; then
+      echo "If you want to restrict port 3000 to a specific IP, enter it now. Or press enter to open port 3000 to thw world."
+      read _whitelistIp
+      if [ ! -z $_whitelistIp ]; then
+        . ${NODE_SCRIPTS_PATH}/updateConfigIP.sh "add" $_whitelistIp "whitelist"
+      fi
+    fi
+
+    . ${NODE_SCRIPTS_PATH}/init/configure.sh

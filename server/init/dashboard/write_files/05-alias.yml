@@ -1,0 +1,19 @@
+- path: /run/tmp/.environment.sh
+  permissions: "750"
+  content: |
+    alias start="sudo systemctl start grafana-server.service && sudo systemctl start prometheus.service"
+    alias stop="sudo systemctl stop grafana-server.service && sudo systemctl stop prometheus.service"
+    alias status="sudo systemctl status grafana-server.service && sudo systemctl status prometheus.service"
+    alias restart="sudo systemctl restart grafana-server.service && sudo systemctl restart prometheus.service"
+    alias logs="journalctl --unit=grafana-server --follow"
+    alias node="cd ${NODE_HOME}"
+    alias home="cd /home/${NODE_USER}"
+
+    export NODE_TYPE=${NODE_TYPE}
+    export NODE_HOME=${NODE_HOME}
+    export NODE_SCRIPTS_PATH=${NODE_SCRIPTS_PATH}
+
+    msg() {
+    [[ -t 2 ]] && [[ -z "${NO_COLOR-}" ]] && N='\033[0m' R='\033[0;31m' G='\033[0;32m' || N='' R='' G=''
+    echo >&2 -e "${1-}"
+    }

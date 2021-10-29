@@ -1,0 +1,98 @@
+- path: ${NODE_SCRIPTS_PATH}/init/configure.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    # Open port 3000 to you?
+    # build prometh config
+
+
+    # blockIp
+    [ ! -z $(cat ${NODE_HOME}/.config.json | jq -r '.blockIP') ] && blockIp=$(cat ${NODE_HOME}/.config.json | jq -r '.blockIP') || blockIp=""
+
+    relayNode1=$(cat ${NODE_HOME}/.config.json | jq -r '.relayIPs[0]')
+    [ ! $relayNode1 == null ] && relayNode1=$relayNode1 || relayNode1=""
+
+    relayNode2=$(cat ${NODE_HOME}/.config.json | jq -r '.relayIPs[1]')
+    [ ! $relayNode2 == null ] && relayNode2=$relayNode2 || relayNode2=""
+
+    topOfFile="global:
+      scrape_interval: 15s
+    scrape_configs:
+      - job_name: 'prometheus'
+        static_configs:"
+    [ ! -z $blockIp ] && blockNodeConfig="
+          - targets: ['$blockIp:9100']
+            labels:
+              alias: 'block-producer-node'
+              type:  'cardano-node'
+          - targets: ['$blockIp:12798']
+            labels:
+              alias: 'block-producer-node'
+              type:  'cardano-node'" || blockNodeConfig=""
+    [ ! -z $relayNode1 ] && relayNode1Config="
+          - targets: ['$relayNode1:9100']
+            labels:
+              alias: 'relay-node-1'
+              type:  'cardano-node'
+          - targets: ['$relayNode1:12798']
+            labels:
+              alias: 'relay-node-1'
+              type:  'cardano-node'" || relayNode1Config=""
+    [ ! -z $relayNode2 ] && relayNode2Config="
+          - targets: ['$relayNode2:9100']
+            labels:
+              alias: 'relay-node-2'
+              type:  'cardano-node'
+          - targets: ['$relayNode2:12798']
+            labels:
+              alias: 'relay-node-2'
+              type:  'cardano-node'" || relayNode2Config=""
+
+    cat > ${NODE_HOME}/prometheus.yml << EOF 
+    $topOfFile
+    $blockNodeConfig
+    $relayNode1Config
+    $relayNode2Config
+    EOF
+
+    sudo mv ${NODE_HOME}/prometheus.yml /etc/prometheus/prometheus.yml
+
+    if [ ! -z $blockIp ]; then
+      echo ""
+      echo "On your block node, you need to run the following command. Be sure to replace <this server IP> with this servers IP"
+      echo "sudo ufw allow proto tcp from <this server IP> to any port 9100"
+      echo "sudo ufw allow proto tcp from <this server IP> to any port 12798"
+      echo ""
+    fi 
+    if [ ! -z $relayNode1 ]; then
+      echo ""
+      echo "On your block node, you need to run the following command. Be sure to replace <this server IP> with this servers IP"
+      echo "sudo ufw allow proto tcp from <this server IP> to any port 9100"
+      echo "sudo ufw allow proto tcp from <this server IP> to any port 12798"
+      echo ""
+    fi 
+    if [ ! -z $relayNode2 ]; then
+      echo ""
+      echo "On your block node, you need to run the following command. Be sure to replace <this server IP> with this servers IP"
+      echo "sudo ufw allow proto tcp from <this server IP> to any port 9100"
+      echo "sudo ufw allow proto tcp from <this server IP> to any port 12798"
+      echo ""
+    fi 
+
+    . ${NODE_SCRIPTS_PATH}/cleanFirewallForPort.sh 3000
+
+    if [[ $(cat ${NODE_HOME}/.config.json | jq '.whitelistAccessIps | length') -gt 0 ]]; then 
+
+      for whitelistAccessIp in $(cat ${NODE_HOME}/.config.json | jq '.whitelistAccessIps | length'); do
+          sudo ufw allow from $whitelistAccessIp to any port 3000
+      done
+    else 
+      echo "No whitelisted IP address. If you want to open to the world, run the command below."
+      echo "sudo ufw allow 3000"
+    fi 
+
+    sudo ufw reload
+
+    sudo systemctl restart grafana-server.service
+    sudo systemctl restart prometheus.service

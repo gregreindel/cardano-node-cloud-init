@@ -92,7 +92,7 @@ Block Node Setup
 |- /home/cardano/scripts/utils/generatePoolCertificateTransaction.sh
 |- /home/cardano/scripts/utils/generatePoolMeta.sh
 |- /home/cardano/scripts/utils/verifyPoolMeta.sh
-
+|- /home/cardano/scripts/utils/cleanFirewallForPort.sh
 
 Relay Node Setup  
 |- /home/cardano/.environment-relay.sh  
@@ -101,6 +101,21 @@ Relay Node Setup
 |- /opt/cardano-node/scripts/init/registerTopology.sh   
 |- /opt/cardano-node/scripts/init/topologyUpdater.sh  
 |- /opt/cardano-node/scripts/init/manualSetupHelper.sh
+|- /home/cardano/scripts/utils/cleanFirewallForPort.sh
+
+Monitoring Dashboard Node Setup  
+|- /home/cardano/.environment-dashboard.sh  
+|- /opt/cardano-node/scripts/init/create.sh  
+|- /opt/cardano-node/scripts/init/configure.sh  
+
+Available On All Setup Nodes (Relay,Block,Dashboard)
+|- /home/cardano/scripts/utils/cleanFirewallForPort.sh
+|- /home/cardano/scripts//init/manualSetupHelperShared.sh
+|- /home/cardano/scripts/updateConfigIP.yml
+|- /home/cardano/scripts/updateTopologyIP.sh
+|- /home/cardano/scripts/toLovelace.sh
+|- /home/cardano/scripts/toADA.sh
+|- /home/cardano/scripts/finish.sh
 
 
 ## Useful Paths
@@ -152,6 +167,30 @@ Once the Cloud-init log says "Cloud-init v. xxxx-ubuntu1~20.04.2 finished..." at
 - Verify the installation by running the following command: `logs`
 - This will display the logs for cardano-node. You should see logs similar to "Chain extended, new tip: xxxx at slot xxx" That means you are syncing with the blockchain.
 
+For complete instructions on how to setup and configure the relay and block nodes visit this link - https://app.cardanocloudinit.com/help/basic
+
+----------------
+
+# Installing a cardano-node Monitoring Dashboard Server
+Note: It's recommended to use Ubuntu 20.04 x64.
+
+**Step 1**  
+- Take the contents of the file named "User Data" and input into the user data section when creating your server.
+
+**Step 2**  
+- Allow the instance to boot. Once it does, it will begin running the Cloud-init configuration.
+- Login to your server by running the following command:  
+`ssh cardano@the-server-ip-address -p the-port-you-chose`
+- Once connected, run this command to watch the Cloud-init process in the logs:  
+`sudo tail -f /var/log/cloud-init-output.log`
+- Wait until it says "Cloud-init v. xxxx-ubuntu1~20.04.2 finished..." at the bottom of the log file and/or the server reboots.
+
+Once the Cloud-init log says "Cloud-init v. xxxx-ubuntu1~20.04.2 finished..." at the bottom, the installation is complete. It should take no longer than 3 minutes.
+
+**Step 3**  
+- Verify the installation by running the following command: `status`. You should see Grafana and Prometheus running
+
+For complete instructions on how to setup and configure the monitoring node visit this link - https://app.cardanocloudinit.com/help/dashboard
 ----------------
 
 # Known Issues & Limitations 

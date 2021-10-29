@@ -22,5 +22,5 @@
 - chown cardano:cardano /usr/local/bin/cardano-node
 - chown cardano:cardano /usr/local/bin/cardano-cli
 
-# Clean up
+## Clean up
 - rm -rf /tmp/binaries-${NODE_VERSION}

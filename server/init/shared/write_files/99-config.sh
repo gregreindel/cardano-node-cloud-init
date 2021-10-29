@@ -27,5 +27,5 @@ hostname=${NODE_HOSTNAME}
 - path: ${NODE_HOME}/.config.json
   permissions: \"750\"
   content: |
-    { \"blockIP\": \"${blockIP}\", \"relayIPs\": ${relayIPs}, \"hostname\": \"$hostname\" }
+    { \"blockIP\": \"${blockIP}\", \"relayIPs\": ${relayIPs}, \"hostname\": \"$hostname\", \"whitelistAccessIps\": [] }
 "

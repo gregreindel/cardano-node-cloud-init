@@ -1,0 +1,6 @@
+- path: /run/tmp/.environment-dashboard.sh
+  permissions: "750"
+  content: |
+    alias cni-init=". ${NODE_SCRIPTS_PATH}/init/create.sh"
+    alias cni-configure=". ${NODE_SCRIPTS_PATH}/init/configure.sh"
+    alias cni-manage-ip=". ${NODE_SCRIPTS_PATH}/updateConfigIP.sh"

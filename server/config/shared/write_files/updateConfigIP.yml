@@ -3,8 +3,25 @@
   content: |
     #!/bin/bash
 
+    addItemToArray(){
+    ipExists=$(cat ${NODE_HOME}/.config.json | jq '.'$1' | contains( ["'$2'"])')
+    if ! $ipExists; then
+        newValue=$(cat ${NODE_HOME}/.config.json | jq '.'$1' += ["'$2'"]')
+        echo $newValue > ${NODE_HOME}/.config.json
+    fi
+    }
+
+    removeItemFromArray(){
+    ipExists=$(cat ${NODE_HOME}/.config.json | jq '.'$1' | contains( ["'$2'"])')
+    if $ipExists; then
+        newValue=$(cat ${NODE_HOME}/.config.json | jq '.'$1' -= ["'$2'"]')
+        echo $newValue > ${NODE_HOME}/.config.json
+    fi
+    }
+
     addOrRemove="$1"
     ip="$2"
+    updateConfigProperty="$3"
 
     if [ -z $addOrRemove ]; then 
       echo "add or remove IP from config?"
@@ -25,33 +42,47 @@
       return
     fi
 
-    # If on the block, we are modifying the relay IPs
-    if [ ${NODE_TYPE} == "block" ]; then 
-      # Adding a relay IP
-      if [ $addOrRemove == "add" ]; then
-        ipExists=$(cat ${NODE_HOME}/.config.json | jq '.relayIPs | contains( ["'$ip'"])')
-        if ! $ipExists; then
-            newValue=$(cat ${NODE_HOME}/.config.json | jq '.relayIPs += ["'$ip'"]')
-            echo $newValue > ${NODE_HOME}/.config.json
-        fi
-      fi
-
-      # Removing a relay IP
-      if [ $addOrRemove == "remove" ]; then
-        ipExists=$(cat ${NODE_HOME}/.config.json | jq '.relayIPs | contains( ["'$ip'"])')
-        if $ipExists; then
-            newValue=$(cat ${NODE_HOME}/.config.json | jq '.relayIPs -= ["'$ip'"]')
-            echo $newValue > ${NODE_HOME}/.config.json
-        fi
+    if [ -z $updateConfigProperty ]; then
+      if [ ${NODE_TYPE} == "block" ]; then 
+        updateConfigProperty="relay"
+      elif [ ${NODE_TYPE} == "relay" ]; then 
+        updateConfigProperty="block"
       fi
     fi
 
-    # If on the block, we are modifying the block IP
-    if [ ${NODE_TYPE} == "relay" ]; then 
+    if [ -z $updateConfigProperty ]; then
+      echo "block or relay or whitelist?"
+      read updateConfigProperty
+    fi
+
+    # If we are modifying the relay IPs
+    if [ $updateConfigProperty == "relay" ]; then 
+      if [ $addOrRemove == "add" ]; then
+        addItemToArray relayIPs $ip
+      fi
+      if [ $addOrRemove == "remove" ]; then
+        removeIItemFromArray relayIPs $ip
+      fi
+    fi
+
+    # If we are modifying the block IP
+    if [ $updateConfigProperty == "block" ]; then 
       if [ $addOrRemove == "remove" ]; then
         ip=""
       fi
 
       newValue=$(cat ${NODE_HOME}/.config.json | jq '.blockIP = "'$ip'"')
       echo $newValue > ${NODE_HOME}/.config.json
+    fi
+
+    # If we are modifying the whitelist IPs
+    if [ $updateConfigProperty == "whitelist" ]; then 
+      if [ $addOrRemove == "add" ]; then
+        addItemToArray whitelistAccessIps $ip
+      fi
+
+      # Removing a whitelist IP
+      if [ $addOrRemove == "remove" ]; then
+        removeIItemFromArray whitelistAccessIps $ip
+      fi
     fi
