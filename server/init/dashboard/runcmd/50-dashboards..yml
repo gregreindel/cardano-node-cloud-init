@@ -1,5 +1,3 @@
-
 - wget -O /var/lib/grafana/dashboards/Pool/SNSKY_Dashboard_v2.json https://raw.githubusercontent.com/sandy4de/SNSKY/main/SNSKY_Dashboard_v2.json
-- sudo -i /var/lib/grafana/dashboards/Pool/SNSKY_Dashboard_v2.json -e "s#SNSKY Homepage#New Pool#g"
-- sudo -i /var/lib/grafana/dashboards/Pool/SNSKY_Dashboard_v2.json -e "s#https://sanskys.de##g"
-
+- wget -O /var/lib/grafana/dashboards/Pool/cardano-application-dashboard-v2.json https://raw.githubusercontent.com/input-output-hk/cardano-ops/master/modules/grafana/cardano/cardano-application-dashboard-v2.json
+- wget -O /var/lib/grafana/dashboards/Pool/JAWS-dashboard.json https://raw.githubusercontent.com/adajaws/JAWS-Pool-Dashboard/master/src/JAWS-dashboard.json
