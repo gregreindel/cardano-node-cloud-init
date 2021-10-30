@@ -10,6 +10,6 @@
 
     (crontab -l -u ${NODE_USER} 2>/dev/null; echo "33 * * * * ${NODE_SCRIPTS_PATH}/topologyUpdater.sh") | crontab -u ${NODE_USER} -
 
-    sudo iptables -I INPUT -p tcp -m tcp --dport ${NODE_PORT} --tcp-flags FIN,SYN,RST,ACK SYN -m connlimit --connlimit-above 5 --connlimit-mask 32 --connlimit-saddr -j REJECT --reject-with tcp-reset
+    sudo iptables -I INPUT -p tcp -m tcp --dport ${NODE_RELAY_PORT} --tcp-flags FIN,SYN,RST,ACK SYN -m connlimit --connlimit-above 5 --connlimit-mask 32 --connlimit-saddr -j REJECT --reject-with tcp-reset
 
     . ${NODE_SCRIPTS_PATH}/init/finish.sh

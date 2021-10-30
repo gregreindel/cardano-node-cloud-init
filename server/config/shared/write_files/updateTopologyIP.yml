@@ -25,8 +25,8 @@
     if [[ $(cat ${CONFIG_TOPOLOGY} | jq '.Producers | map(select(.addr == "'$1'"))  | length' ) -gt 0 ]]; then
     echo "IP $1 already exists! Topology not modified."
     else
-    sudo ufw allow from "$1" to any port "${NODE_PORT}"
-    addedResult=$(cat ${CONFIG_TOPOLOGY} | jq '.Producers += [{"addr": "'$1'", "port": ${NODE_PORT}, "valency": 1}]')
+    sudo ufw allow from "$1" to any port "$2"
+    addedResult=$(cat ${CONFIG_TOPOLOGY} | jq '.Producers += [{"addr": "'$1'", "port": $2, "valency": 1}]')
     cat > ${CONFIG_TOPOLOGY} << EOF 
     $addedResult
     EOF
@@ -37,7 +37,7 @@
     if [[ $(cat ${CONFIG_TOPOLOGY} | jq '.Producers | map(select(.addr == "'$1'"))  | length' ) -gt 0 ]]; then
 
     if [ ! $DEFAULT_IOHK_RELAY == $1 ]; then 
-      sudo ufw delete from "$1" to any port "${NODE_PORT}"
+      sudo ufw delete from "$1" to any port "$2"
     fi 
     
     removedResult=$(cat ${CONFIG_TOPOLOGY} |  jq '.Producers | map(select(.addr != "'$1'"))')
@@ -52,16 +52,17 @@
     }
 
     [[ "${NODE_TYPE}" = "block" ]] && ITEMS=$(cat ${NODE_HOME}/.config.json  | jq -r '.relayIPs[]') || ITEMS=$(cat ${NODE_HOME}/.config.json  | jq -r '.blockIP')
+    [[ "${NODE_TYPE}" = "block" ]] && PORT=NODE_RELAY_PORT || PORT=NODE_BLOCK_PORT
 
     # Reset topology to use default relay
     resetTopology
 
     for IP in $(echo $ITEMS); do
     if [ ! -z $IP ]; then 
-      addToTopology $IP
+      addToTopology $IP $PORT
     fi
     done
 
     if [ "${NODE_TYPE}" = "block" ]; then 
-    removeFromTopology $DEFAULT_IOHK_RELAY
+    removeFromTopology $DEFAULT_IOHK_RELAY 3001
     fi

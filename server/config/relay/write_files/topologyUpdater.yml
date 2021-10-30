@@ -22,4 +22,4 @@
       sudo chown ${NODE_USER}:${NODE_USER} ${NODE_LOG_PATH}
     fi
 
-    curl -s "https://api.clio.one/htopology/v1/?port=${NODE_PORT}&blockNo=${blockNo}&valency=${valency}&magic=${networkMagic}${_hostname}" | tee -a ${NODE_LOG_PATH}/topologyUpdaterLatest.json
+    curl -s "https://api.clio.one/htopology/v1/?port=${NODE_RELAY_PORT}&blockNo=${blockNo}&valency=${valency}&magic=${networkMagic}${_hostname}" | tee -a ${NODE_LOG_PATH}/topologyUpdaterLatest.json

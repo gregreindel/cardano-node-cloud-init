@@ -1,0 +1,21 @@
+- path: ${NODE_SCRIPTS_PATH}/updateCardanoNode.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    CONFIG_BUILD_NUMBER=$(curl --silent https://hydra.iohk.io/job/Cardano/iohk-nix/cardano-deployment/latest-finished/download/1/index.html | grep -e "build" | sed 's/.*build\/\([0-9]*\)\/download.*/\1/g')
+    # Get cardano-node latest build number
+    BINARY_BUILD=$(curl --silent https://hydra.iohk.io/job/Cardano/cardano-node/cardano-node-linux/latest-finished/download/1/index.html | grep -e "build" | sed 's/.*build\/\([0-9]*\)\/download.*/\1/g')
+    # Get cardano-node latest build version number
+    VERSION=$(curl --silent https://hydra.iohk.io/build/$BINARY_BUILD | grep -e "<a href=\"https://hydra.iohk.io/build/$BINARY_BUILD/download/1/cardano-node-" | sed 's/^.*[^0-9]\([0-9]*\.[0-9]*\.[0-9]*\).*$/\1/')
+
+    echo "Are you sure you want to update? Latest version is $VERSION y/n"
+    read areYouSure
+
+    if [ $areYouSure == "y" ]; then 
+      echo "Updating"
+      sudo systemctl stop cardano-node
+      . ${NODE_SCRIPTS_PATH}/installCardanoBinaries.sh $CONFIG_BUILD_NUMBER $BINARY_BUILD $VERSION
+      echo "Done"
+      sudo systemctl start cardano-node
+    fi

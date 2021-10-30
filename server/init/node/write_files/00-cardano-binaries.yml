@@ -1,0 +1,48 @@
+- path: ${NODE_SCRIPTS_PATH}/installCardanoBinaries.sh
+  permissions: "550"
+  content: |
+    #!/bin/bash
+
+    NODE_CONFIG_BUILD_NUMBER=$1
+    NODE_BINARY_BUILD=$2
+    VERSION=3
+    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then 
+      return 
+    fi
+    # Download the compiled cardano-node for linux x86. Save to /tmp
+    - wget -N https://hydra.iohk.io/build/$NODE_BINARY_BUILD/download/1/cardano-node-$VERSION-linux.tar.gz -P /tmp
+
+    # Make directory to extract into
+    - mkdir /tmp/binaries-$VERSION
+
+    # Extract
+    - tar -C /tmp/binaries-$VERSION -zxvf /tmp/cardano-node-$VERSION-linux.tar.gz
+
+    # Remove the tar.gz
+    - rm /tmp/cardano-node-$VERSION-linux.tar.gz
+
+    # Backup old 
+    - mv /usr/local/bin/cardano-node /usr/local/bin/cardano-node.backup
+    - mv /usr/local/bin/cardano-cli /usr/local/bin/cardano-cli.backup
+
+    # Copy binaries into /usr/local/bin
+    - cp /tmp/binaries-$VERSION/cardano-node /usr/local/bin/cardano-node
+    - cp /tmp/binaries-$VERSION/cardano-cli /usr/local/bin/cardano-cli
+
+    # Make the binaries executable
+    - chmod +x /usr/local/bin/cardano-node
+    - chmod +x /usr/local/bin/cardano-cli
+
+    # Change permissions
+    - chown cardano:cardano /usr/local/bin/cardano-node
+    - chown cardano:cardano /usr/local/bin/cardano-cli
+
+    ## Clean up
+    - rm -rf /tmp/binaries-$VERSION
+
+    # https://hydra.iohk.io/job/Cardano/iohk-nix/cardano-deployment/latest-finished/download/1/index.html
+    - wget -O ${NODE_CONFIG_PATH}/${NODE_NETWORK}-byron-genesis.json https://hydra.iohk.io/build/$NODE_CONFIG_BUILD_NUMBER/download/1/${NODE_NETWORK}-byron-genesis.json
+    - wget -O ${NODE_CONFIG_PATH}/${NODE_NETWORK}-topology.json https://hydra.iohk.io/build/$NODE_CONFIG_BUILD_NUMBER/download/1/${NODE_NETWORK}-topology.json
+    - wget -O ${NODE_CONFIG_PATH}/${NODE_NETWORK}-shelley-genesis.json https://hydra.iohk.io/build/$NODE_CONFIG_BUILD_NUMBER/download/1/${NODE_NETWORK}-shelley-genesis.json
+    - wget -O ${NODE_CONFIG_PATH}/${NODE_NETWORK}-alonzo-genesis.json https://hydra.iohk.io/build/$NODE_CONFIG_BUILD_NUMBER/download/1/${NODE_NETWORK}-alonzo-genesis.json
+    - wget -O ${NODE_CONFIG_PATH}/${NODE_NETWORK}-config.json https://hydra.iohk.io/build/$NODE_CONFIG_BUILD_NUMBER/download/1/${NODE_NETWORK}-config.json

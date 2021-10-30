@@ -136,12 +136,12 @@
     fi
 
     relays="$hostPrefix $POOL_RELAY_HOST_1 \\
-          --pool-relay-port ${NODE_PORT} \\"
+          --pool-relay-port ${NODE_RELAY_PORT} \\"
 
     if [ ! -z $POOL_RELAY_HOST_2 ]; then
     relays+="
           $hostPrefix $POOL_RELAY_HOST_2 \\
-          --pool-relay-port ${NODE_PORT} \\"
+          --pool-relay-port ${NODE_RELAY_PORT} \\"
     fi
 
 

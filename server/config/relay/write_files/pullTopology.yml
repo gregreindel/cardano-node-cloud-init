@@ -16,7 +16,7 @@
     customPeers="${DEFAULT_IOHK_RELAY}:3001:2"
     BLOCK_NODE_IP=$(cat ${NODE_HOME}/.config.json | jq '.blockIP')
     if [ ! -z "$BLOCK_NODE_IP" ]; then
-      customPeers="$BLOCK_NODE_IP:\${NODE_PORT}:1|${customPeers}"
+      customPeers="$BLOCK_NODE_IP:\${NODE_BLOCK_PORT}:1|${customPeers}"
     fi
 
     pullTopologyResponseCode="$(curl -s ${CONFIG_TOPOLOGY} "https://api.clio.one/htopology/v1/fetch/?max=20&customPeers=\${customPeers}" | jq -r '.resultcode')"
