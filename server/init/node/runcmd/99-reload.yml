@@ -1,3 +1,2 @@
-- sudo systemctl enable prometheus-node-exporter.service
-- sudo systemctl enable cardano-node
+- sudo systemctl enable cardano-node prometheus-node-exporter.service
 - sudo systemctl restart prometheus-node-exporter.service

@@ -111,42 +111,44 @@
       uptime=$(printf "%14s" "$uptime")
 
       clear
+
+      line='+---------------------+----------------+'
       if [[ ! -z "$nodename" ]]; then
         name=$(printf "%30s" "${nodename}")
         echo -e "| Name: ${INFO}${name}${NC} |"
-        echo -e '+---------------------+----------------+'
+        echo -e $line
       fi
       echo -e "| Version             | ${INFO}${node_version}${NC} |"
-      echo -e '+---------------------+----------------+'
+      echo -e $line
       echo -e "| Revision            | ${INFO}${node_rev}${NC} |"
-      echo -e '+---------------------+----------------+'
+      echo -e $line
       echo -e "| Peers (Out / In)    | ${peers} |"
-      echo -e "+---------------------+----------------+"
+      echo -e $line
       echo -e "| Epoch / Block       | ${epoch} |"
-      echo -e '+---------------------+----------------+'
+      echo -e $line
       echo -e "| Slot                | ${slot} |"
-      echo -e '+---------------------+----------------+'
+      echo -e $line
       echo -e "| Uptime (D:H:M:S)    | ${uptime} |"
-      echo -e '+---------------------+----------------+'
+      echo -e $line
       echo -e "| Transactions        | ${txcount} |"
-      echo -e '+---------------------+----------------+'
+      echo -e $line
       echo -e "| Chain Density       | ${density} |"
-      echo -e '+---------------------+----------------+'
+      echo -e $line
       if [[ $abouttolead -gt 0 ]]; then
         kesperiod=$(printf "%14s" "$kesperiod")
         kesremain=$(printf "%14s" "$kesremain")
         isleader=$(printf "%14s" "$isleader")
         forged=$(printf "%14s" "$forged")
         echo -e "|  ${GOOD}RUNNING IN BLOCK PRODUCER MODE! :)${NC}  |"
-        echo -e "+---------------------+----------------+"
+        echo -e $line
         echo -e "| KES PERIOD          | ${kesperiod} |"
-        echo -e "+---------------------+----------------+"
+        echo -e $line
         echo -e "| KES REMAINING       | ${kesremain} |"
-        echo -e "+---------------------+----------------+"
+        echo -e $line
         echo -e "| SLOTS LED           | ${isleader} |"
-        echo -e "+---------------------+----------------+"
+        echo -e $line
         echo -e "| BLOCKS FORGED       | ${forged} |"
-        echo -e "+---------------------+----------------+"
+        echo -e $line
       else
         echo -e "|  ${REKT}NOT A BLOCK PRODUCER! RELAY ONLY!${NC}   |"
         echo -e '+--------------------------------------+'
