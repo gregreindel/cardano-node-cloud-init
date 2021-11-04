@@ -1,5 +1,5 @@
 - path: ${NODE_SCRIPTS_PATH}/startNode.sh
-  permissions: "550"
+  permissions: "750"
   content: |
     #!/bin/bash
     /usr/local/bin/cardano-node $(cat ${NODE_HOME}/.config.json | jq -r '.extraParameters') run --topology ${CONFIG_TOPOLOGY} --database-path ${NODE_DB_PATH} --socket-path ${NODE_SOCKET_PATH} --host-addr 0.0.0.0 --port ${NODE_PORT} --config ${CONFIG_CONFIG}
