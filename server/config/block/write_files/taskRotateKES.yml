@@ -59,10 +59,10 @@
     RUN=true
     while $RUN
     do
-    if [ -f /home/${NODE_USER}/node-$kesPeriod.cert ]; then
-        mv /home/${NODE_USER}/node-$kesPeriod.cert ${NODE_PRIVATE_PATH}/node.cert
-        mv /tmp/kes.skey ${NODE_PRIVATE_PATH}/kes.skey
-        mv /tmp/kes.vkey ${NODE_PRIVATE_PATH}/kes.vkey
+    if [ -f /home/${NODE_USER}/node-$kesPeriod.cert ] && [ -f /tmp/kes.skey ] && [ -f /tmp/kes.vkey ]; then
+        sudo mv /home/${NODE_USER}/node-$kesPeriod.cert ${NODE_PRIVATE_PATH}/node.cert
+        sudo  mv /tmp/kes.skey ${NODE_PRIVATE_PATH}/kes.skey
+        sudo mv /tmp/kes.vkey ${NODE_PRIVATE_PATH}/kes.vkey
         rm -rf /home/${NODE_USER}/rotate-kes.zip
         RUN=false
     else

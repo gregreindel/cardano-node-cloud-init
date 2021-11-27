@@ -6,6 +6,8 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
 
 BUILD_ID="0"
 
+OUTPUT_PATH_DIR="$script_dir/out"
+
 OUTPUT_DASHBOARD_YAML="no"
 OUTPUT_RELAY_YAML="no"
 OUTPUT_BLOCK_YAML="no"
@@ -104,7 +106,10 @@ while [[ $# -gt 0 ]]; do
       CUSTOM_DB_PATH="$2"
       shift
       ;;
-      
+    --output-path)
+      OUTPUT_PATH_DIR="$2"
+      shift
+      ;;
     *) # unknown option
       shift
       ;;
@@ -174,7 +179,8 @@ else
   NODE_NETWORK_FLAG="--testnet-magic 1097911063"
 fi
 
-mkdir -p "$script_dir/out/${BUILD_ID}"
+OUTPUT_PATH="$OUTPUT_PATH_DIR/$BUILD_ID"
+mkdir -p $OUTPUT_PATH
 
 if [ "${NODE_TYPE}" == "relay" ] && [ "${NODE_NUMBER}" -eq 1 ]; then 
   NODE_HOSTNAME=$RELAY_HOSTNAME_1
@@ -186,15 +192,15 @@ fi
 [ "$NODE_TYPE" == "dashboard" ] && filenamePart1="${NODE_TYPE}" || filenamePart1="${NODE_TYPE}-${NODE_NUMBER}"
 [ "$NODE_TYPE" == "dashboard" ] && filename="user-data" || filename=$filename
 
-USER_DATA_YAML_OUT="$script_dir/out/${BUILD_ID}/$filenamePart1-${filename}.yaml"
+USER_DATA_YAML_OUT="$OUTPUT_PATH/$filenamePart1-${filename}.yaml"
 
 # Write the header to the main user data file
 echo "$(. "$script_dir/server/init/header.sh")" > $USER_DATA_YAML_OUT
 
-SETUP_SCRIPTS_YAML_OUT="$script_dir/out/${BUILD_ID}/$filenamePart1-${filename}.yaml"
+SETUP_SCRIPTS_YAML_OUT="$OUTPUT_PATH/$filenamePart1-${filename}.yaml"
 # If not bundling, that means were generating another file. write the header for that
 if [ "$BUNDLE_CONFIG" = "1" ] && [ ! "$NODE_TYPE" == "dashboard" ]; then
-  SETUP_SCRIPTS_YAML_OUT="$script_dir/out/${BUILD_ID}/$filenamePart1-setup.yaml"
+  SETUP_SCRIPTS_YAML_OUT="$OUTPUT_PATH/$filenamePart1-setup.yaml"
   echo "$(. "$script_dir/server/config/header.sh")" > "$SETUP_SCRIPTS_YAML_OUT"
   echo "" >> "$SETUP_SCRIPTS_YAML_OUT"
 fi 
@@ -264,45 +270,45 @@ done
 # if were writing 2 files, one will NOT be executed on create. so it doesnt support runcmd. 
 
 # go through all the generated files and replace variables
-for f in `ls -1v $script_dir/out/${BUILD_ID}`; do
-  sed -i '' "s#\${NODE_TYPE}#${NODE_TYPE}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${NODE_NETWORK}#${NODE_NETWORK}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${NODE_NETWORK_FLAG}#${NODE_NETWORK_FLAG}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${NODE_VERSION}#${NODE_VERSION}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${NODE_BINARY_BUILD}#${NODE_BINARY_BUILD}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${NODE_HOSTNAME}#${NODE_HOSTNAME}#g" $script_dir/out/$BUILD_ID/$f
+for f in `ls -1v $OUTPUT_PATH`; do
+  sed -i '' "s#\${NODE_TYPE}#${NODE_TYPE}#g" $OUTPUT_PATH/$f
+  sed -i '' "s#\${NODE_NETWORK}#${NODE_NETWORK}#g" $OUTPUT_PATH/$f
+  sed -i '' "s#\${NODE_NETWORK_FLAG}#${NODE_NETWORK_FLAG}#g" $OUTPUT_PATH/$f
+  sed -i '' "s#\${NODE_VERSION}#${NODE_VERSION}#g" $OUTPUT_PATH/$f
+  sed -i '' "s#\${NODE_BINARY_BUILD}#${NODE_BINARY_BUILD}#g" $OUTPUT_PATH/$f
+  sed -i '' "s#\${NODE_HOSTNAME}#${NODE_HOSTNAME}#g" $OUTPUT_PATH/$f
 
-  sed -i '' "s#\${SSH_KEY}#${SSH_KEY}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${SSH_PORT}#${SSH_PORT}#g" $script_dir/out/$BUILD_ID/$f
+  sed -i '' "s#\${SSH_KEY}#${SSH_KEY}#g" $OUTPUT_PATH/$f
+  sed -i '' "s#\${SSH_PORT}#${SSH_PORT}#g" $OUTPUT_PATH/$f
 
-  sed -i '' "s#\${NODE_PORT}#${NODE_PORT}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${NODE_USER}#${NODE_USER}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${NODE_HOME}#${NODE_HOME}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${NODE_CONFIG_BUILD_NUMBER}#${NODE_CONFIG_BUILD_NUMBER}#g" $script_dir/out/$BUILD_ID/$f
+  sed -i '' "s#\${NODE_PORT}#${NODE_PORT}#g" $OUTPUT_PATH/$f
+  sed -i '' "s#\${NODE_USER}#${NODE_USER}#g" $OUTPUT_PATH/$f
+  sed -i '' "s#\${NODE_HOME}#${NODE_HOME}#g" $OUTPUT_PATH/$f
+  sed -i '' "s#\${NODE_CONFIG_BUILD_NUMBER}#${NODE_CONFIG_BUILD_NUMBER}#g" $OUTPUT_PATH/$f
 
-  sed -i '' "s#\${NODE_CONFIG_PATH}#${NODE_CONFIG_PATH}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${NODE_LOG_PATH}#${NODE_LOG_PATH}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${NODE_DB_PATH}#${NODE_DB_PATH}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${NODE_SOCKET_PATH}#${NODE_SOCKET_PATH}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${CARDANO_NODE_SOCKET_PATH}#${CARDANO_NODE_SOCKET_PATH}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${NODE_PRIVATE_PATH}#${NODE_PRIVATE_PATH}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${NODE_SCRIPTS_PATH}#${NODE_SCRIPTS_PATH}#g" $script_dir/out/$BUILD_ID/$f
+  sed -i '' "s#\${NODE_CONFIG_PATH}#${NODE_CONFIG_PATH}#g" $OUTPUT_PATH/$f
+  sed -i '' "s#\${NODE_LOG_PATH}#${NODE_LOG_PATH}#g" $OUTPUT_PATH/$f
+  sed -i '' "s#\${NODE_DB_PATH}#${NODE_DB_PATH}#g" $OUTPUT_PATH/$f
+  sed -i '' "s#\${NODE_SOCKET_PATH}#${NODE_SOCKET_PATH}#g" $OUTPUT_PATH/$f
+  sed -i '' "s#\${CARDANO_NODE_SOCKET_PATH}#${CARDANO_NODE_SOCKET_PATH}#g" $OUTPUT_PATH/$f
+  sed -i '' "s#\${NODE_PRIVATE_PATH}#${NODE_PRIVATE_PATH}#g" $OUTPUT_PATH/$f
+  sed -i '' "s#\${NODE_SCRIPTS_PATH}#${NODE_SCRIPTS_PATH}#g" $OUTPUT_PATH/$f
 
-  sed -i '' "s#\${CONFIG_TOPOLOGY}#${CONFIG_TOPOLOGY}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${CONFIG_CONFIG}#${CONFIG_CONFIG}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${CONFIG_SHELLY}#${CONFIG_SHELLY}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${CONFIG_BYRON}#${CONFIG_BYRON}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${CONFIG_ALONZO}#${CONFIG_ALONZO}#g" $script_dir/out/$BUILD_ID/$f
+  sed -i '' "s#\${CONFIG_TOPOLOGY}#${CONFIG_TOPOLOGY}#g" $OUTPUT_PATH/$f
+  sed -i '' "s#\${CONFIG_CONFIG}#${CONFIG_CONFIG}#g" $OUTPUT_PATH/$f
+  sed -i '' "s#\${CONFIG_SHELLY}#${CONFIG_SHELLY}#g" $OUTPUT_PATH/$f
+  sed -i '' "s#\${CONFIG_BYRON}#${CONFIG_BYRON}#g" $OUTPUT_PATH/$f
+  sed -i '' "s#\${CONFIG_ALONZO}#${CONFIG_ALONZO}#g" $OUTPUT_PATH/$f
 
-  sed -i '' "s#\${BLOCK_NODE_SWAP_SIZE}#${BLOCK_NODE_SWAP_SIZE}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${BLOCK_NODE_IP_1}#${BLOCK_NODE_IP_1}#g" $script_dir/out/$BUILD_ID/$f
+  sed -i '' "s#\${BLOCK_NODE_SWAP_SIZE}#${BLOCK_NODE_SWAP_SIZE}#g" $OUTPUT_PATH/$f
+  sed -i '' "s#\${BLOCK_NODE_IP_1}#${BLOCK_NODE_IP_1}#g" $OUTPUT_PATH/$f
 
-  sed -i '' "s#\${RELAY_NODE_SWAP_SIZE}#${RELAY_NODE_SWAP_SIZE}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${RELAY_NODE_IP_1}#${RELAY_NODE_IP_1}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${RELAY_NODE_IP_2}#${RELAY_NODE_IP_2}#g" $script_dir/out/$BUILD_ID/$f
+  sed -i '' "s#\${RELAY_NODE_SWAP_SIZE}#${RELAY_NODE_SWAP_SIZE}#g" $OUTPUT_PATH/$f
+  sed -i '' "s#\${RELAY_NODE_IP_1}#${RELAY_NODE_IP_1}#g" $OUTPUT_PATH/$f
+  sed -i '' "s#\${RELAY_NODE_IP_2}#${RELAY_NODE_IP_2}#g" $OUTPUT_PATH/$f
 
-  sed -i '' "s#\${AUTO_INIT}#${AUTO_INIT}#g" $script_dir/out/$BUILD_ID/$f
-  sed -i '' "s#\${NODE_NUMBER}#${NODE_NUMBER}#g" $script_dir/out/$BUILD_ID/$f
+  sed -i '' "s#\${AUTO_INIT}#${AUTO_INIT}#g" $OUTPUT_PATH/$f
+  sed -i '' "s#\${NODE_NUMBER}#${NODE_NUMBER}#g" $OUTPUT_PATH/$f
 done
 }
 
