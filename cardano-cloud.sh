@@ -131,12 +131,18 @@ VERSION="latest"
 fi 
 
 if [ $VERSION == "latest" ]; then 
-# Get config latest build number
-CONFIG_BUILD_NUMBER=$(curl --silent https://hydra.iohk.io/job/Cardano/iohk-nix/cardano-deployment/latest-finished/download/1/index.html | grep -e "build" | sed 's/.*build\/\([0-9]*\)\/download.*/\1/g')
-# Get cardano-node latest build number
-BINARY_BUILD=$(curl --silent https://hydra.iohk.io/job/Cardano/cardano-node/cardano-node-linux/latest-finished/download/1/index.html | grep -e "build" | sed 's/.*build\/\([0-9]*\)\/download.*/\1/g')
-# Get cardano-node latest build version number
-VERSION=$(curl --silent https://hydra.iohk.io/build/$BINARY_BUILD | grep -e "<a href=\"https://hydra.iohk.io/build/$BINARY_BUILD/download/1/cardano-node-" | sed 's/^.*[^0-9]\([0-9]*\.[0-9]*\.[0-9]*\).*$/\1/')
+  if [ -z $(curl --version | grep "command not found") ]; then 
+    CONFIG_BUILD_NUMBER=7926804
+    BINARY_BUILD=7938912
+    VERSION="1.30.0"
+  else 
+    # Get config latest build number
+    CONFIG_BUILD_NUMBER=$(curl --silent https://hydra.iohk.io/job/Cardano/iohk-nix/cardano-deployment/latest-finished/download/1/index.html | grep -e "build" | sed 's/.*build\/\([0-9]*\)\/download.*/\1/g')
+    # Get cardano-node latest build number
+    BINARY_BUILD=$(curl --silent https://hydra.iohk.io/job/Cardano/cardano-node/cardano-node-linux/latest-finished/download/1/index.html | grep -e "build" | sed 's/.*build\/\([0-9]*\)\/download.*/\1/g')
+    # Get cardano-node latest build version number
+    VERSION=$(curl --silent https://hydra.iohk.io/build/$BINARY_BUILD | grep -e "<a href=\"https://hydra.iohk.io/build/$BINARY_BUILD/download/1/cardano-node-" | sed 's/^.*[^0-9]\([0-9]*\.[0-9]*\.[0-9]*\).*$/\1/')
+  fi 
 fi
 
 
@@ -271,44 +277,46 @@ done
 
 # go through all the generated files and replace variables
 for f in `ls -1v $OUTPUT_PATH`; do
-  sed -i '' "s#\${NODE_TYPE}#${NODE_TYPE}#g" $OUTPUT_PATH/$f
-  sed -i '' "s#\${NODE_NETWORK}#${NODE_NETWORK}#g" $OUTPUT_PATH/$f
-  sed -i '' "s#\${NODE_NETWORK_FLAG}#${NODE_NETWORK_FLAG}#g" $OUTPUT_PATH/$f
-  sed -i '' "s#\${NODE_VERSION}#${NODE_VERSION}#g" $OUTPUT_PATH/$f
-  sed -i '' "s#\${NODE_BINARY_BUILD}#${NODE_BINARY_BUILD}#g" $OUTPUT_PATH/$f
-  sed -i '' "s#\${NODE_HOSTNAME}#${NODE_HOSTNAME}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${NODE_TYPE}#${NODE_TYPE}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${NODE_NETWORK}#${NODE_NETWORK}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${NODE_NETWORK_FLAG}#${NODE_NETWORK_FLAG}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${NODE_VERSION}#${NODE_VERSION}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${NODE_BINARY_BUILD}#${NODE_BINARY_BUILD}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${NODE_HOSTNAME}#${NODE_HOSTNAME}#g" $OUTPUT_PATH/$f
 
-  sed -i '' "s#\${SSH_KEY}#${SSH_KEY}#g" $OUTPUT_PATH/$f
-  sed -i '' "s#\${SSH_PORT}#${SSH_PORT}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${SSH_KEY}#${SSH_KEY}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${SSH_PORT}#${SSH_PORT}#g" $OUTPUT_PATH/$f
 
-  sed -i '' "s#\${NODE_PORT}#${NODE_PORT}#g" $OUTPUT_PATH/$f
-  sed -i '' "s#\${NODE_USER}#${NODE_USER}#g" $OUTPUT_PATH/$f
-  sed -i '' "s#\${NODE_HOME}#${NODE_HOME}#g" $OUTPUT_PATH/$f
-  sed -i '' "s#\${NODE_CONFIG_BUILD_NUMBER}#${NODE_CONFIG_BUILD_NUMBER}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${NODE_PORT}#${NODE_PORT}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${NODE_USER}#${NODE_USER}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${NODE_HOME}#${NODE_HOME}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${NODE_CONFIG_BUILD_NUMBER}#${NODE_CONFIG_BUILD_NUMBER}#g" $OUTPUT_PATH/$f
 
-  sed -i '' "s#\${NODE_CONFIG_PATH}#${NODE_CONFIG_PATH}#g" $OUTPUT_PATH/$f
-  sed -i '' "s#\${NODE_LOG_PATH}#${NODE_LOG_PATH}#g" $OUTPUT_PATH/$f
-  sed -i '' "s#\${NODE_DB_PATH}#${NODE_DB_PATH}#g" $OUTPUT_PATH/$f
-  sed -i '' "s#\${NODE_SOCKET_PATH}#${NODE_SOCKET_PATH}#g" $OUTPUT_PATH/$f
-  sed -i '' "s#\${CARDANO_NODE_SOCKET_PATH}#${CARDANO_NODE_SOCKET_PATH}#g" $OUTPUT_PATH/$f
-  sed -i '' "s#\${NODE_PRIVATE_PATH}#${NODE_PRIVATE_PATH}#g" $OUTPUT_PATH/$f
-  sed -i '' "s#\${NODE_SCRIPTS_PATH}#${NODE_SCRIPTS_PATH}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${NODE_CONFIG_PATH}#${NODE_CONFIG_PATH}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${NODE_LOG_PATH}#${NODE_LOG_PATH}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${NODE_DB_PATH}#${NODE_DB_PATH}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${NODE_SOCKET_PATH}#${NODE_SOCKET_PATH}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${CARDANO_NODE_SOCKET_PATH}#${CARDANO_NODE_SOCKET_PATH}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${NODE_PRIVATE_PATH}#${NODE_PRIVATE_PATH}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${NODE_SCRIPTS_PATH}#${NODE_SCRIPTS_PATH}#g" $OUTPUT_PATH/$f
 
-  sed -i '' "s#\${CONFIG_TOPOLOGY}#${CONFIG_TOPOLOGY}#g" $OUTPUT_PATH/$f
-  sed -i '' "s#\${CONFIG_CONFIG}#${CONFIG_CONFIG}#g" $OUTPUT_PATH/$f
-  sed -i '' "s#\${CONFIG_SHELLY}#${CONFIG_SHELLY}#g" $OUTPUT_PATH/$f
-  sed -i '' "s#\${CONFIG_BYRON}#${CONFIG_BYRON}#g" $OUTPUT_PATH/$f
-  sed -i '' "s#\${CONFIG_ALONZO}#${CONFIG_ALONZO}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${CONFIG_TOPOLOGY}#${CONFIG_TOPOLOGY}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${CONFIG_CONFIG}#${CONFIG_CONFIG}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${CONFIG_SHELLY}#${CONFIG_SHELLY}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${CONFIG_BYRON}#${CONFIG_BYRON}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${CONFIG_ALONZO}#${CONFIG_ALONZO}#g" $OUTPUT_PATH/$f
 
-  sed -i '' "s#\${BLOCK_NODE_SWAP_SIZE}#${BLOCK_NODE_SWAP_SIZE}#g" $OUTPUT_PATH/$f
-  sed -i '' "s#\${BLOCK_NODE_IP_1}#${BLOCK_NODE_IP_1}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${BLOCK_NODE_SWAP_SIZE}#${BLOCK_NODE_SWAP_SIZE}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${BLOCK_NODE_IP_1}#${BLOCK_NODE_IP_1}#g" $OUTPUT_PATH/$f
 
-  sed -i '' "s#\${RELAY_NODE_SWAP_SIZE}#${RELAY_NODE_SWAP_SIZE}#g" $OUTPUT_PATH/$f
-  sed -i '' "s#\${RELAY_NODE_IP_1}#${RELAY_NODE_IP_1}#g" $OUTPUT_PATH/$f
-  sed -i '' "s#\${RELAY_NODE_IP_2}#${RELAY_NODE_IP_2}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${RELAY_NODE_SWAP_SIZE}#${RELAY_NODE_SWAP_SIZE}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${RELAY_NODE_IP_1}#${RELAY_NODE_IP_1}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${RELAY_NODE_IP_2}#${RELAY_NODE_IP_2}#g" $OUTPUT_PATH/$f
 
-  sed -i '' "s#\${AUTO_INIT}#${AUTO_INIT}#g" $OUTPUT_PATH/$f
-  sed -i '' "s#\${NODE_NUMBER}#${NODE_NUMBER}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${AUTO_INIT}#${AUTO_INIT}#g" $OUTPUT_PATH/$f
+  sed -i.bak "s#\${NODE_NUMBER}#${NODE_NUMBER}#g" $OUTPUT_PATH/$f
+
+  rm $OUTPUT_PATH/$f.bak
 done
 }
 

@@ -3,6 +3,13 @@ Generate Cloud-init YAML files that can be used for installing and setting up Ca
 
 Web UI - https://cardanocloudinit.com
 
+Web UI GitHub - https://github.com/gregreindel/cardano-node-cloud-init-app
+Web API GitHub - https://github.com/gregreindel/cardano-node-cloud-init-api
+
+Install and Setup Cardano Stake Pool Node Using Cloud-init in Less Than 15 mins - YouTube
+https://www.youtube.com/watch?v=ga1ofRRZuiA
+
+
 **Note: This is in beta.**
 
 ----------------
